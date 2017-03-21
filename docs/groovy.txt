@@ -1,0 +1,3352 @@
+1.1 语法
+
+单行注释、多行注释、文档注释与Java一样
+
+标识符以字母、美元符号、下划线开头
+跟在点后面的关键字也可以，foo.break
+跟在点后面的单引号或双引号括起来的也可以，map."an identifier with a space and double quotes"
+map.'single quote'
+map."double quote"
+map.'''triple single quote'''
+map."""triple double quote"""
+map./slashy string/
+map.$/dollar slashy string/$
+
+单引号字符串，就是Java字符串，不支持插值，'a single quoted string'
+拼接，'ab' == 'a' + 'b'
+三个单引号字符串，就是Java字符串，不支持插值，'''a triple single quoted string'''
+但可以跨越多行，且不需要拼接或换行符的转义
+'''line one
+line two
+line three'''
+反斜杠用来转义，两个反斜杠转义反斜杠自身
+\u用来转义键盘上不存在的unicode字符
+
+双引号字符串，如果没有插值表达式，就是Java字符串，如果有插值表达式，就是GString，"a double quoted string"
+使用反斜杠转义双引号
+所有的Groovy表达式可以插入到除了单引号和三个单引号之外的字符串字面量中
+插值就是在计算字符串时，使用具体值替换占位符。插值占位符是${}或以$开头的带点的表达式
+如${name}、${2 + 3}，大括号中还支持多个语句，最后一个语句的值是插值表达式的值，如果没值则是null
+$person.name，只有带点表示式是合法的，可以包含小括号，像方法调用，可以包含大括号，像闭包，算数操作符是非法的
+反斜杠可以转义$和${}，不再把它们看作插值表达式
+
+插值闭包表达式是特殊情况，当占位符包含一个箭头${->}，实际上是一个闭包表达式，
+"1 + 2 == ${-> 3}"，"1 + 2 == ${ w -> w << 3}"，无参数的和带参数的，都是占位符被嵌入闭包
+插值闭包表达式看起来比较冗长繁琐，但是它比普通表达式有一个有趣的好处是延迟计算
+普通插值表达式是积极计算的，在插值表达式定义时，占位符已经被替换成了变量的值，以后再改变变量值，对插值表达式无影响，
+所以是积极计算的，即定义时计算
+闭包插值表达式是延迟结算的，在插值表达式定义时，占位符不进行替换，而是在调用插值表达式时，才进行一次计算并输出结果，
+但插值表达式并没有改变，仅仅是在每次调用时进行计算，并替换成变量此时的值，然后输出结果而已，
+所以是延迟计算的，即调用时计算
+def number = 1
+def eagerGString = "value == ${number}"
+def lazyGString = "value == ${ -> number }"
+
+assert eagerGString == "value == 1"
+assert lazyGString ==  "value == 1"
+
+number = 2
+assert eagerGString == "value == 1"
+assert lazyGString ==  "value == 2"
+闭包插值表达式只能包含零个或一个参数
+当方法需要一个Java的String，却传进来一个Groovy的GString时，会自动透明地调用头String()转化成Java的String
+GString和String的哈希代码是不同的，即使它们表示的字符串是相同的，另外GString的哈希代码是变化的，所以不能用作Map的Key值
+
+三个双引号的字符串和双引号字符串差不多，不过是多行的，就像三个单引号字符串那样，双引号和单引号在这里都不需要转义
+
+斜杠字符串使用斜杠作为分界符，主要用于定义正则表达式和模式，且不需要转义反斜杠，只有正斜杠需要用反斜杠进行转义
+斜杠字符串是多行的，且支持插值表达式，需要注意几点，空的斜杠字符串不能用两个斜杠表示，会被当作单行注释
+斜杠字符串主要被设计为简化正则表达式，因此一些在GString中是错误用法的反而在斜杠字符串中可以使用，例如$()
+
+美元斜杠字符串是多行的GString，以$/开头、以/$结尾。美元符号是转义字符，可以用来转义另一个美元符号，或转义一个正斜杠
+单个美元符号和正斜杠都不需要被转义，但是需要转义美元符号后跟一个字符串序列，就像一个GString的占位符序列
+还需要转义美元斜杠字符串的结尾分界符号
+
+不像Java，Groovy没有一个显式的字符字面量，不过可以显式地把一个字符串当作一个实际的字符
+char c1 = 'A'，声明变量时显式指定为字符类型
+def c2 = 'B' as char，使用类型强制
+def c3 = (char)'C'，使用类型转换
+上面第一种方法常用于变量声明，后两种方法常用于方法调用传参数时的转类型
+
+Groovy支持不同种类的整型字面量和十进制小数型字面量，后面采用Java的Number类型
+整型字面量和Java一样，byte、char、short、int、long、BigInteger
+可以采用显式声明
+// primitive types
+byte  b = 1
+char  c = 2
+short s = 3
+int   i = 4
+long  l = 5
+// infinite precision
+BigInteger bi =  6
+如果采用def关键字声明，整型字面量的类型将是变化的，将适应能够持有这个数字的类型
+def a = 1
+assert a instanceof Integer
+// Integer.MAX_VALUE
+def b = 2147483647
+assert b instanceof Integer
+// Integer.MAX_VALUE + 1
+def c = 2147483648
+assert c instanceof Long
+// Long.MAX_VALUE
+def d = 9223372036854775807
+assert d instanceof Long
+// Long.MAX_VALUE + 1
+def e = 9223372036854775808
+assert e instanceof BigInteger
+
+def na = -1
+assert na instanceof Integer
+// Integer.MIN_VALUE
+def nb = -2147483648
+assert nb instanceof Integer
+// Integer.MIN_VALUE - 1
+def nc = -2147483649
+assert nc instanceof Long
+// Long.MIN_VALUE
+def nd = -9223372036854775808
+assert nd instanceof Long
+// Long.MIN_VALUE - 1
+def ne = -9223372036854775809
+assert ne instanceof BigInteger
+
+可选的非十进制表示，还可以使用二进制、八进制、十六进制表示
+二进制以0b作为前缀
+int xInt = 0b10101111
+assert xInt == 175
+
+short xShort = 0b11001001
+assert xShort == 201 as short
+
+byte xByte = 0b11
+assert xByte == 3 as byte
+
+long xLong = 0b101101101101
+assert xLong == 2925l
+
+BigInteger xBigInteger = 0b111100100001
+assert xBigInteger == 3873g
+
+int xNegativeInt = -0b10101111
+assert xNegativeInt == -175
+
+八进制以0开头
+int xInt = 077
+assert xInt == 63
+
+short xShort = 011
+assert xShort == 9 as short
+
+byte xByte = 032
+assert xByte == 26 as byte
+
+long xLong = 0246
+assert xLong == 166l
+
+BigInteger xBigInteger = 01111
+assert xBigInteger == 585g
+
+int xNegativeInt = -077
+assert xNegativeInt == -63
+
+十六进制以0x开头
+int xInt = 0x77
+assert xInt == 119
+
+short xShort = 0xaa
+assert xShort == 170 as short
+
+byte xByte = 0x3a
+assert xByte == 58 as byte
+
+long xLong = 0xffff
+assert xLong == 65535l
+
+BigInteger xBigInteger = 0xaaaa
+assert xBigInteger == 43690g
+
+Double xDouble = new Double('0x1.0p0')
+assert xDouble == 1.0d
+
+int xNegativeInt = -0x77
+assert xNegativeInt == -119
+
+十进制（小数）类型和Java一样
+float、double、BigDecimal
+可以显示声明
+// primitive types
+float  f = 1.234
+double d = 2.345
+
+// infinite precision
+BigDecimal bd =  3.456
+十进制类型能够采用幂指数（科学记数法），先是一个e或E，然后是一个可选的+或-，然后是一个整数表示指数
+assert 1e3  ==  1_000.0
+assert 2E4  == 20_000.0
+assert 3e+1 ==     30.0
+assert 4E-2 ==      0.04
+assert 5e-1 ==      0.5
+为了精确的计算，Groovy采用BigDecimal作为十进制数字类型。float和double也支持，不过需要显式类型声明或类型强制或后缀区分
+十进制数字不能采用二进制、八进制、十六进制的形式来表示
+
+数字字面量可以使用下划线分割
+long creditCardNumber = 1234_5678_9012_3456L
+long socialSecurityNumbers = 999_99_9999L
+double monetaryAmount = 12_345_132.12
+long hexBytes = 0xFF_EC_DE_5E
+long hexWords = 0xFFEC_DE5E
+long maxLong = 0x7fff_ffff_ffff_ffffL
+long alsoMaxLong = 9_223_372_036_854_775_807L
+long bytes = 0b11010010_01101001_10010100_10010010
+
+数字类型后缀可以强制一个字面量（二进制、八进制、十六进制）是指定的类型，后缀不区分大小写
+BigInteger G or g
+Long L or l
+Integer I or i
+BigDecimal G or g
+Double D or d
+Float F or f
+assert 42I == new Integer('42')
+assert 42i == new Integer('42') // lowercase i more readable
+assert 123L == new Long("123") // uppercase L more readable
+assert 2147483648 == new Long('2147483648') // Long type used, value too large for an Integer
+assert 456G == new BigInteger('456')
+assert 456g == new BigInteger('456')
+assert 123.45 == new BigDecimal('123.45') // default BigDecimal type used
+assert 1.200065D == new Double('1.200065')
+assert 1.234F == new Float('1.234')
+assert 1.23E23D == new Double('1.23E23')
+assert 0b1111L.class == Long // binary
+assert 0xFFi.class == Integer // hexadecimal
+assert 034G.class == BigInteger // octal
+数学操作符，不同类型相互操作后的结果类型，幸亏Groovy支持操作符重载，普通操作符也可用于BigInteger和BigDecimal，不像Java必须显式方法调用才行
+int和比int小的结果都是int、long和比long小的结果都是long，BigInteger和比BinInteger小的结果都是BigInteger
+BigDecimal和所有整型结果是BigDecimal，带有float或double的结果是double，BigDecimal和BigDecimal结果是BigDecimal
+除法操作符，操作数中如果有float或double，结果就是double，除此之外，结果都是BigDecimal
+
+指数操作符，用两个星号**表示，还有一个基数和一个指数（结果类型暂不关注）
+
+布尔类型，只有true和false，Groovy有特别的规则可以强制非布尔对象到一个布尔值
+
+列表，采用逗号分隔，且用中括号包围，其实就是Java的List，Groovy没有定义自己的集合框架。具体的列表实现默认是采用Java的ArrayList，除非指定成其它的
+def numbers = [1, 2, 3]
+assert numbers instanceof List
+assert numbers.size() == 3
+元素类型可以不同
+def heterogeneous = [1, "a", true]
+可以使用强制类型as操作符或显式类型声明
+def arrayList = [1, 2, 3]
+assert arrayList instanceof java.util.ArrayList
+
+def linkedList = [2, 3, 4] as LinkedList
+assert linkedList instanceof java.util.LinkedList
+
+LinkedList otherLinked = [3, 4, 5]
+assert otherLinked instanceof java.util.LinkedList
+
+可以使用下标操作符来访问（读写）列表元素，索引可以是正数或负数，索引可以是单个、多个或一个范围，可以使用左移操作符<<向列表追加元素
+def letters = ['a', 'b', 'c', 'd']
+
+assert letters[0] == 'a'
+assert letters[1] == 'b'
+
+assert letters[-1] == 'd'
+assert letters[-2] == 'c'
+
+letters[2] = 'C'
+assert letters[2] == 'C'
+
+letters << 'e'
+assert letters[ 4] == 'e'
+assert letters[-1] == 'e'
+
+assert letters[1, 3] == ['b', 'd']
+assert letters[2..4] == ['C', 'd', 'e']
+列表可以包含列表，来创建多维列表
+def multi = [[0, 1], [2, 3]]
+assert multi[1][0] == 2
+
+数组和列表采用相同的记法，要想成为数组必须显式指定，通过强制类型或显式类型声明
+String[] arrStr = ['Ananas', 'Banana', 'Kiwi']
+
+assert arrStr instanceof String[]
+assert !(arrStr instanceof List)
+
+def numArr = [1, 2, 3] as int[]
+
+assert numArr instanceof int[]
+assert numArr.size() == 3
+
+同样可以定义多维数组
+def matrix3 = new Integer[3][3]
+assert matrix3.size() == 3
+
+Integer[][] matrix2
+matrix2 = [[1, 2], [3, 4]]
+assert matrix2 instanceof Integer[][]
+
+采用与列表相同的方法访问数组
+String[] names = ['Cédric', 'Guillaume', 'Jochen', 'Paul']
+assert names[0] == 'Cédric'
+
+names[2] = 'Blackdrag'
+assert names[2] == 'Blackdrag'
+Java的数组初始化写法在Groovy里不支持，因为会被错误的解释为Groovy的闭包
+
+Map，key/value用冒号分割，元素之间用逗号分隔，再用中括号包围
+可以采用下标或属性的方式访问（读写、添加）元素，当key不存在时返回null
+默认采用Java的LinkedHashMap实现
+def colors = [red: '#FF0000', green: '#00FF00', blue: '#0000FF']
+
+assert colors['red'] == '#FF0000'
+assert colors.green  == '#00FF00'
+
+colors['pink'] = '#FF00FF'
+colors.yellow  = '#FFFF00'
+
+assert colors.pink == '#FF00FF'
+assert colors['yellow'] == '#FFFF00'
+
+assert colors instanceof java.util.LinkedHashMap
+下面这种想把一个变量当作key，用变量的值来访问的方法是不行的，会直接把变量的名字当作key
+def key = 'name'
+def person = [key: 'Guillaume']
+
+assert !person.containsKey('name')
+assert person.containsKey('key')
+如果你的key不是一个合法的标识符，则必须用引号括起来才行
+["street-name": "Main street"]
+如果你想把一个变量或表达式的值当作key，则必须用小括号括起来才行
+person = [(key): 'Guillaume']
+
+assert person.containsKey('name')
+assert !person.containsKey('key')
+
+1.2 操作符
+
+算数操作符
++、-、*、/、%、**
++、-
+++、--
++=、-=、*=、/=、%=、**=
+关系操作符
+==、!=、<、<=、>、>=
+逻辑操作符
+&&、||、!，非的优先级最高，其次是与，最后是或，其中与、或都支持短路操作
+位操作符，与、或、异或、取反
+&、|、^、~
+位操作符可用于byte或int，返回值为int
+在Groovy中，位操作符是可重载的，可自定义用于任何对象
+条件操作符
+取反，!，兼容Groovy truth
+assert (!true)    == false
+assert (!'foo')   == false
+assert (!'')      == true
+三元操作符，? :，兼容Groovy truth
+result = (string!=null && string.length()>0) ? 'Found' : 'Not found'
+result = string ? 'Found' : 'Not found'
+Elvis操作符，是三元操作符的缩写形式，兼容Groovy truth（减少了冗长和错误风险）
+displayName = user.name ? user.name : 'Anonymous'
+displayName = user.name ?: 'Anonymous'
+
+安全导航操作符，为了避免抛出空指针异常
+def person = Person.find { it.id == 123 }
+def name = person?.name
+assert name == null
+直接字段访问操作符，默认访问的是getter，要想直接访问字段，请用.@
+class User {
+    public final String name
+    User(String name) { this.name = name}
+    String getName() { "Name: $name" }
+}
+def user = new User('Bob')
+assert user.name == 'Name: Bob'
+
+assert user.@name == 'Bob'
+方法指针操作符，.&，把对一个方法的引用保存在变量里，稍后调用
+def str = 'example of method reference'
+def fun = str.&toUpperCase
+def upper = fun()
+assert upper == str.toUpperCase()
+方法指针的好处很多，方法指针的类型是一个闭包Closure，它可以用在任何需要闭包的地方
+特别地，它适合把一个已存在的方法转换成策略模式匹配的需要
+def transform(List elements, Closure action) {                    
+    def result = []
+    elements.each {
+        result << action(it)
+    }
+    result
+}
+String describe(Person p) {                                       
+    "$p.name is $p.age"
+}
+def action = this.&describe                                       
+def list = [
+    new Person(name: 'Bob',   age: 42),
+    new Person(name: 'Julia', age: 35)]                           
+assert transform(list, action) == ['Bob is 42', 'Julia is 35']
+方法指针被接收者和方法名这两者共同限制，方法指针的参数是在运行时解析的。意味着如果存在方法重载的话
+语法是一样的，在运行时只有适合的方法会被解析调用，所有的重载方法共用一个方法指针
+def doSomething(String str) { str.toUpperCase() }    
+def doSomething(Integer x) { 2*x }                   
+def reference = this.&doSomething                    
+assert reference('foo') == 'FOO'                     
+assert reference(123)   == 246
+
+模式操作符，~，提供一个简单的方式创建Java的java.util.regex.Pattern
+def p = ~/foo/
+assert p instanceof Pattern
+通常模式操作符和斜杠字符串连用，其实可以和任何字符串连用
+p = ~'foo'                                                        
+p = ~"foo"                                                        
+p = ~$/dollar/slashy $ string/$                                   
+p = ~"${pattern}"  
+可选地来构建一个模式，可以直接使用查找操作符，=~，来构建一个Java的java.util.regex.Matcher
+def text = "some text to match"
+def m = text =~ /match/                                           
+assert m instanceof Matcher                                       
+if (!m) {                                                         
+    throw new RuntimeException("Oops, text not found!")
+}
+匹配操作符，==~，是查找操作符的一个微小变化，它返回一个布尔类型，要求对输入字符串的严格匹配
+
+传播（Spread）操作符，*.，用于在一个聚集（集合）对象的所有元素（all item）上调用一个动作
+等于在每一个元素上调用动作，并把结果收集到一个列表中
+class Car {
+    String make
+    String model
+}
+def cars = [
+       new Car(make: 'Peugeot', model: '508'),
+       new Car(make: 'Renault', model: 'Clio')]       
+def makes = cars*.make                                
+assert makes == ['Peugeot', 'Renault']    
+传播操作符是null安全的，如果集合的一个元素是null，那么将返回一个null而不是抛空指针异常
+传播操作符可以用在任何实现Iterable接口的类上
+class Component {
+    Long id
+    String name
+}
+class CompositeObject implements Iterable<Component> {
+    def components = [
+        new Component(id: 1, name: 'Foo'),
+        new Component(id: 2, name: 'Bar')]
+
+    @Override
+    Iterator<Component> iterator() {
+        components.iterator()
+    }
+}
+def composite = new CompositeObject()
+assert composite*.id == [1,2]
+assert composite*.name == ['Foo','Bar']
+分散方法操作符，*，如果一个方法的多个参数值被放到一个列表里，可以使用该操作符
+把参数值从列表里拆出来，去适配对应方法的多个参数
+int function(int x, int y, int z) {
+    x*y+z
+}
+def args = [4,5,6]
+assert function(*args) == 26
+也可以和常规参数进行混合
+args = [4]
+assert function(*args,5,6) == 26
+分散列表元素，*，当用在列表字面量里，该操作符就好像把元素内容内联到列表里
+def items = [4,5]                      
+def list = [1,2,3,*items,6]            
+assert list == [1,2,3,4,5,6] 
+分散映射（map）元素，*:，和上面情况差不多，允许你把一个map的元素内联到另一个map字面量里
+def m1 = [c:3, d:4]                   
+def map = [a:1, b:2, *:m1]            
+assert map == [a:1, b:2, c:3, d:4] 
+下面例子中，有一个key对应的值被重定义了
+def m1 = [c:3, d:4]                   
+def map = [a:1, b:2, *:m1, d: 8]      
+assert map == [a:1, b:2, c:3, d:8]
+
+范围操作符，..，创建对象的范围（分为包含右边界和不包含右边界），Range类实现了List接口
+def range = 0..5                                    
+assert (0..5).collect() == [0, 1, 2, 3, 4, 5]       
+assert (0..<5).collect() == [0, 1, 2, 3, 4]         
+assert (0..5) instanceof List                       
+assert (0..5).size() == 6   
+Range的实现是轻量级的，只存储了左、右边界值，可以从任何Comparable对象创建，且有next()和previous()方法
+来决定Range中的下一个、上一个元素
+assert ('a'..'d').collect() == ['a','b','c','d']
+
+宇宙飞船（spaceship）操作符，<=>，代理到compareTo方法
+assert (1 <=> 1) == 0
+assert (1 <=> 2) == -1
+assert (2 <=> 1) == 1
+assert ('a' <=> 'z') == -1
+
+下标操作符，[]，是getAt或putAt的速写记法，取决于在赋值符号的左边（写）或右边（读）
+支持单个索引、多个索引、范围索引、正负索引
+def list = [0,1,2,3,4]
+assert list[2] == 2                         
+list[2] = 4                                 
+assert list[0..2] == [0,1,4]                
+list[0..2] = [6,6,6]                        
+assert list == [6,6,6,3,4] 
+下标操作符，可用于实现getAt或putAt方法的对象上，是解析对象的一种方便方式
+class User {
+    Long id
+    String name
+    def getAt(int i) {                                             
+        switch (i) {
+            case 0: return id
+            case 1: return name
+        }
+        throw new IllegalArgumentException("No such element $i")
+    }
+    void putAt(int i, def value) {                                 
+        switch (i) {
+            case 0: id = value; return
+            case 1: name = value; return
+        }
+        throw new IllegalArgumentException("No such element $i")
+    }
+}
+def user = new User(id: 1, name: 'Alex')                           
+assert user[0] == 1                                                
+assert user[1] == 'Alex'                                           
+user[1] = 'Bob'                                                    
+assert user.name == 'Bob'
+
+成员关系（membership）操作符，in，等于调用isCase方法，在列表的上下文中，等于调用contains方法
+def list = ['Grace','Rob','Emmy']
+assert ('Emmy' in list)     
+
+相等操作符，==，与Java中的不同，它是调用equals方法，如果想判断引用相等，应该使用is
+def list1 = ['Groovy 1.8','Groovy 2.0','Groovy 2.3']        
+def list2 = ['Groovy 1.8','Groovy 2.0','Groovy 2.3']        
+assert list1 == list2                                       
+assert !list1.is(list2) 
+
+强制操作符，as，是类型转换的一种变体，强制把对象从一种类型转换到另一种类型，而不考虑对于赋值是否兼容
+整型不可以赋值给字符串，运行时产生一个转换异常
+Integer x = 123
+String s = (String) x 
+可以把它强制转化成一个字符串
+Integer x = 123
+String s = x as String    
+当一个对象被强制成另一个时，除了目标类型和原始类型相同外，都将返回一个全新的对象
+强制的规则依赖于原始和目标类型而不同，如果没有找到转换规则，强制或许失败
+可以自定义转换规则，幸亏有asType方法
+class Identifiable {
+    String name
+}
+class User {
+    Long id
+    String name
+    def asType(Class target) {                                              
+        if (target==Identifiable) {
+            return new Identifiable(name: name)
+        }
+        throw new ClassCastException("User cannot be coerced into $target")
+    }
+}
+菱形操作符，<>，仅仅是一个语法糖，是为了支持兼容Java7的用法，指示泛型类型应该从声明处推断
+List<String> strings = new LinkedList<>()
+在动态的Groovy中，这完全没有用，在静态类型检查的Groovy中，它也是可选的
+无论这个操作符是否存在，Groovy类型检查器都会进行类型推断
+
+调用操作符，()，用于隐式调用一个名为call的方法。对于任何定义了call方法的对象
+你可以省略.call这个方法名，直接用()进行调用
+class MyCallable {
+    int call(int x) {           
+        2*x
+    }
+}
+
+def mc = new MyCallable()
+assert mc.call(2) == 4          
+assert mc(2) == 4
+操作符优先级
+操作符重载
+
+1.3 程序结构
+
+包名，package，和Java一样，必须先指定包名，否则就是默认包名
+引入，import，和Java一样
+默认已经引入的包
+import java.lang.*
+import java.util.*
+import java.io.*
+import java.net.*
+import groovy.lang.*
+import groovy.util.*
+import java.math.BigInteger
+import java.math.BigDecimal
+简单引入，一次引入一个类
+import groovy.xml.MarkupBuilder
+星号引入，一次引入一个包中所有类
+import groovy.xml.*
+星号引入会弄乱你的本地命名空间，不过Groovy的别名机制可以简单解决这个问题
+静态引入，就像访问本类的静态方法
+import static Boolean.FALSE
+静态引入和Java差不多，但是比Java更灵活，允许定义和引入方法同名的方法，只要参数不同就行了
+如果连参数也相同的话，引入的方法具有较高优先级
+import static java.lang.String.format
+静态引入别名，使用关键字as，可以优雅地解决命名空间问题
+import static Calendar.getInstance as now
+assert now().class == Calendar.getInstance().class
+静态星号引入和常规的星号引入非常相似，它将引入指定类的所有静态方法
+import static java.lang.Math.*
+assert sin(0) == 0.0
+assert cos(0) == 1.0
+引入别名，使用as关键字，可以使用一个我们自己选择的名字去引用一个完全限定的类名
+import java.util.Date
+import java.sql.Date as SQLDate
+
+Date utilDate = new Date(1000L)
+SQLDate sqlDate = new SQLDate(1000L)
+
+assert utilDate instanceof java.util.Date
+assert sqlDate instanceof java.sql.Date
+
+脚本VS类
+main方法vs脚本
+为了执行main方法，通常需要嵌入到一个类中，像Java那样
+class Main {                                    
+    static void main(String... args) {          
+        println 'Groovy world!'                 
+    }
+}
+Groovy简化了它，脚本可以看成一个类，但是你不需要去声明它，且具有一些不同
+println 'Groovy world!'
+脚本类，脚本总是编译进一个类里，编译器会帮你编译这个类，它把你写的脚本拷贝到这个类的一个run方法里
+import org.codehaus.groovy.runtime.InvokerHelper
+class Main extends Script {                     
+    def run() {                                 
+        println 'Groovy world!'                 
+    }
+    static void main(String[] args) {           
+        InvokerHelper.runScript(Main, args)     
+    }
+}
+如果脚本在一个文件里，那么文件名用来决定产生的脚本类名
+脚本里可以定义方法
+int fib(int n) {
+    n < 2 ? 1 : fib(n-1) + fib(n-2)
+}
+assert fib(10)==89
+可以混合方法和脚本代码，所有的方法会被搬移到生成的脚本类里，成为成员方法
+所有的脚本代码会搬移到run方法里，成为执行代码
+println 'Hello'                                 
+
+int power(int n) { 2**n }                       
+
+println "2^6==${power(6)}"   
+编译后变成了
+import org.codehaus.groovy.runtime.InvokerHelper
+class Main extends Script {
+    int power(int n) { 2** n}                   
+    def run() {
+        println 'Hello'                         
+        println "2^6==${power(6)}"              
+    }
+    static void main(String[] args) {
+        InvokerHelper.runScript(Main, args)
+    }
+}
+从脚本编译成类的过程，对用户来说是完全透明的，脚本被编译成字节码，行号会被保留
+这暗示，如果有异常抛出，行号还是原始脚本的行号，而不是编译成的类的行号
+脚本中的变量不要求明确的类型声明
+int x = 1
+int y = 2
+assert x+y == 3
+表现的行为和下面的一样
+x = 1
+y = 2
+assert x+y == 3
+但这两者的语义是不同的
+第一种将产生一个局部变量，编译器将把它移到run方法里
+在脚本主体之外不可见，特别地，对于脚本中的其它方法也是不可见的
+如果变量没有声明，它将进入脚本绑定。绑定对于所有的方法都可见
+特别地，如果你使用一个脚本和一个应用程序交互，需要在脚本和应用之间共享数据
+
+1.4 面向对象
+
+类型，支持的基本类型和Java一样，当在Groovy中使用基本类型时，会被自动包装成对应的对象
+因为Groovy里所有的东西都是对象
+这意味着每次在基本类型的包装对象上使用算数操作符时，都要引起拆箱和装箱
+这都不是事，因为Groovy会把算数操作符编译成对应的方法调用
+当调用Java方法且需要基本类型时会自动拆箱，返回Groovy时再自动装箱
+
+类，与Java类很相似，且在JVM级别是兼容的。可以有方法、字段或属性，有和Java相同的修饰符
+下面是类的关键特征，与Java是不同的
+共有字段自动转进属性，这将减少冗长代码，没有太多的getter和setter
+字段、属性和方法声明时没有访问修饰符的话默认是公有的
+类名不需要和文件名相同
+一个文件可以包含一个或多个类（如果不包含类的话，则被认为是脚本）
+class Person {                       
+
+    String name                      
+    Integer age
+
+    def increaseAge(Integer years) { 
+        this.age += years
+    }
+}
+常规类，就是顶级和具体的类。这意味着它们可以被实例化而没有其它类或脚本的限制
+这种方式，类只能是公有的，通过new关键字，调用构造函数实例化
+def p = new Person()
+内部类，定义在另一个类里，封闭类可以像平常一样使用内部类，内部类可以访问封闭类的所有成员
+即使是私有的，除了封闭类之外的其它类，都不允许访问内部类
+class Outer {
+    private String privateStr
+
+    def callInnerMethod() {
+        new Inner().methodA()       
+    }
+
+    class Inner {                   
+        def methodA() {
+            println "${privateStr}." 
+        }
+    }
+}
+使用内部类的若干原因
+内部类隐藏在封闭类里，对其它类不可见，这增加了封装，且使代码更整洁
+这提供了一个组织方式，把只被一个类使用的那些类组合起来
+这将使代码更易维护，因为内部类与使用它们的类离得很近
+在几种情况，内部类作为接口的实现，它们的方法被外部类使用
+class Outer2 {
+    private String privateStr = 'some string'
+
+    def startThread() {
+       new Thread(new Inner2()).start()
+    }
+
+    class Inner2 implements Runnable {
+        void run() {
+            println "${privateStr}."
+        }
+    }
+}
+匿名内部类，上一个示例可以简化为一个匿名内部类
+class Outer3 {
+    private String privateStr = 'some string'
+
+    def startThread() {
+        new Thread(new Runnable() {      
+            void run() {
+                println "${privateStr}."
+            }
+        }).start()                       
+    }
+}
+因此，没有必要定义一个只使用一次的新类
+抽象类，表示一般的概念，不能被实例化，包含字段、属性，抽象的或具体的方法
+abstract class Abstract {         
+    String name
+
+    abstract def abstractMethod() 
+
+    def concreteMethod() {
+        println 'concrete'
+    }
+}
+抽象类通常会与接口对比，在做选择时至少有两个重要的不同
+抽象类可能包含字段属性和具体方法，接口只能包含抽象方法
+一个类可以实现多个接口，但只能继承一个类，无论抽象与否
+接口，一个接口定义了一个类需要遵从的契约
+接口方法总是公有的，接口可以继承其它接口
+类要想实现接口必须使用implements关键字，再加上接口名称
+否则类的实例不是接口类型，即使包含了和接口一样的方法
+class DefaultGreeter {
+    void greet(String name) { println "Hello" }
+}
+
+greeter = new DefaultGreeter()
+assert !(greeter instanceof Greeter)
+Groovy并不定义结构化的类型系统，可以使一个对象的实例在运行时实现一个接口
+使用as强制操作符
+greeter = new DefaultGreeter()                              
+coerced = greeter as Greeter                                
+assert coerced instanceof Greeter   
+构造函数，有两种调用方式，位置参数或命名参数
+位置参数的构造函数有三种用法
+一种使用new关键字调用
+一种使用as关键字，把一个列表强制成期望类型
+一种是在赋值中使用强制（不需要as关键字）
+class PersonConstructor {
+    String name
+    Integer age
+
+    PersonConstructor(name, age) {          
+        this.name = name
+        this.age = age
+    }
+}
+
+def person1 = new PersonConstructor('Marie', 1)  
+def person2 = ['Marie', 2] as PersonConstructor  
+PersonConstructor person3 = ['Marie', 3]
+命名参数构造函数，如果没有构造函数被定义，可以采用像map那种形式传递参数
+这种方式允许参数的随意组合，如果是传统的位置参数的话，需要声明多个构造函数实现不同情况
+class PersonWOConstructor {                                  
+    String name
+    Integer age
+}
+
+def person4 = new PersonWOConstructor()                      
+def person5 = new PersonWOConstructor(name: 'Marie')         
+def person6 = new PersonWOConstructor(age: 1)                
+def person7 = new PersonWOConstructor(name: 'Marie', age: 2)
+这种方法给构造函数的调用者更大的权力，同时也把主要责任压给调用者
+如果需要限制，可以声明一个或多个构造函数，这样，使用命名参数来实例化将不再可用
+
+方法
+方法定义，可以带一个返回类型，或带def关键字，使返回类型编程无类型
+可以接收任意数目的参数，可以不用显式声明参数类型
+Java修饰符可以照常使用，如果没有修饰符，则是公共的
+方法总是返回某个值，如果没有return语句，最后一行的值将被返回
+def someMethod() { 'method called' }                           
+String anotherMethod() { 'another method called' }             
+def thirdMethod(param1) { "$param1 passed" }                   
+static String fourthMethod(String param1) { "$param1 passed" }
+命名参数，这些参数被作为一个map接收，在方法体里可以访问这个map
+def foo(Map args) { "${args.name}: ${args.age}" }
+foo(name: 'Marie', age: 1)
+默认参数，是参数变成可选的，如果参数没有被提供，则使用默认值
+def foo(String par1, Integer par2 = 1) { [name: par1, age: par2] }
+assert foo('Marie').age == 1
+默认参数后面只能定义其它默认参数，不能定义非默认参数（强制参数）
+可变参数，记法为...，方法支持可变数目的参数
+def foo(Object... args) { args.length }
+assert foo() == 0
+assert foo(1) == 1
+assert foo(1, 2) == 2
+允许T[]作为T...的一个可选记法，意味着任何一个方法只要最后一个参数是数组类型
+该方法会被认为是带有一个可变数目的参数
+def foo(Object[] args) { args.length }
+assert foo() == 0
+assert foo(1) == 1
+assert foo(1, 2) == 2
+如果调用时传入一个null，那么参数整体就变为null，不再是一个数组
+def foo(Object... args) { args }
+assert foo(null) == null
+如果调用时传入一个数组，那么参数就变成了传入的那个数组，而不会编程嵌套数组
+def foo(Object... args) { args }
+Integer[] ints = [1, 2]
+assert foo(ints) == [1, 2]
+另一个重要的点是可变参数和方法重载联合起来，在方法重载时，Groovy将选择一个最具体的方法
+一个方法带有可变参数T，一个方法带有一个参数T，第二个更具体
+def foo(Object... args) { 1 }
+def foo(Object x) { 2 }
+assert foo() == 1
+assert foo(1) == 2
+assert foo(1, 2) == 1
+
+字段和属性
+
+字段是类或特征的一个成员
+一个强制的访问修饰符
+一个或多个可选的修饰符
+一个可选的类型
+一个强制的名称
+class Data {
+    private int id                                  
+    protected String description                    
+    public static final boolean DEBUG = false       
+}
+声明时直接初始化
+class Data {
+    private String id = IDGenerator.next() 
+    // ...
+}
+可以省略字段类型，这被认为是一个不好的实践，通常需要一个强类型
+class BadPractice {
+    private mapping                         
+}
+class GoodPractice {
+    private Map<String,String> mapping      
+}
+这两者的不同在于稍后的可选类型检查。还有就是对于文档的撰写
+像在脚本这种情况下，如果你依赖于动态类型，则可以省略类型
+属性，是字段和getter或setter的结合
+一个缺席的访问修饰符
+一个或多个可选的修饰符
+一个可选的类型
+一个强制的名称
+Groovy会自己生成getter或setter，包括背后的私有字段
+class Person {
+    String name                             
+    int age                                 
+}
+如果属性是final的，则不生成setter
+class Person {
+    final String name                   
+    final int age                       
+    Person(String name, int age) {
+        this.name = name                
+        this.age = age                  
+    }
+}
+在类外面，属性通过名称访问，将透明地调用getter或setter
+在类里面，则直接访问字段
+class Person {
+    String name
+    void name(String name) {
+        this.name = "Wonder$name"       
+    }
+    String wonder() {
+        this.name                       
+    }
+}
+def p = new Person()
+p.name = 'Marge'                        
+assert p.name == 'Marge'                
+p.name('Marge')                         
+assert p.wonder() == 'WonderMarge'
+可以列出一个类的所有属性，多亏了实例的元字段properties
+class Person {
+    String name
+    int age
+}
+def p = new Person()
+assert p.properties.keySet().containsAll(['name','age'])
+按照约定，Groovy将识别出属性，即使没有定义背后的字段，如果只有getter或setter，只要遵循Java Bean的规范
+class PseudoProperties {
+    // a pseudo property "name"
+    void setName(String name) {}
+    String getName() {}
+
+    // a pseudo read-only property "age"
+    int getAge() { 42 }
+
+    // a pseudo write-only property "groovy"
+    void setGroovy(boolean groovy) {  }
+}
+def p = new PseudoProperties()
+p.name = 'Foo'                      
+assert p.age == 42                  
+p.groovy = true           
+
+注解
+
+注解定义，注解是一类特殊的接口专用于注解代码元素。注解类型的超级接口是Annotation接口
+注解的声明和接口非常相似，使用@interface关键字
+@interface SomeAnnotation {}
+注解可以定义成员，采用定义方法的形式，但是没有方法体，可以有一个可选的默认值
+可能的类型被限制为
+基本类型、字符串、Class（反射类型）、枚举、另一个注解类型或以上类型的数组
+@interface SomeAnnotation {
+    String value()                          
+}
+@interface SomeAnnotation {
+    String value() default 'something'      
+}
+@interface SomeAnnotation {
+    int step()                              
+}
+@interface SomeAnnotation {
+    Class appliesTo()                       
+}
+@interface SomeAnnotation {}
+@interface SomeAnnotations {
+    SomeAnnotation[] value()                
+}
+enum DayOfWeek { mon, tue, wed, thu, fri, sat, sun }
+@interface Scheduled {
+    DayOfWeek dayOfWeek()                   
+}
+与Java不同，Groovy注解可以用来改变语言的语义
+注解的位置
+注解可用于代码的许多不同的元素上
+@SomeAnnotation                 
+void someMethod() {
+    // ...
+}
+
+@SomeAnnotation                 
+class SomeClass {}
+
+@SomeAnnotation String var
+为了限制注解可使用的范围（地方），在注解定义的时候，必须使用Target注解进行声明
+下面的注解可用于方法和类
+import java.lang.annotation.ElementType
+import java.lang.annotation.Target
+
+@Target([ElementType.METHOD, ElementType.TYPE])     
+@interface SomeAnnotation {}
+注解成员的值，当使用注解时，至少要对所有没有默认值的成员进行设置
+@interface Page {
+    int statusCode()
+}
+
+@Page(statusCode=404)
+void notFound() {
+    // ...
+}
+在使用时可以省略value=这部分，如果value是唯一正在被设置的
+如果有多个被设置的话，不能省
+@interface Page {
+    String value()
+    int statusCode() default 200
+}
+
+@Page(value='/home')                    
+void home() {
+    // ...
+}
+
+@Page('/users')                         
+void userList() {
+    // ...
+}
+
+@Page(value='error',statusCode=404)     
+void notFound() {
+    // ...
+}
+保持策略，注解的可见性依赖于保持策略，保持到编译时可见还是保持到运行时可见
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+
+@Retention(RetentionPolicy.SOURCE)                   
+@interface SomeAnnotation {}             
+闭包注解参数，在Groovy中注解的一个有趣的特性是可以使用一个闭包作为注解的值
+因此注解可用于一个宽泛的多种类型的表达式，且有IDE支持
+想象一下你想执行方法的一个框架，依赖于环境限制，像JDK版本或操作系统
+class Tasks {
+    Set result = []
+    void alwaysExecuted() {
+        result << 1
+    }
+    @OnlyIf({ jdk>=6 })
+    void supportedOnlyInJDK6() {
+        result << 'JDK 6'
+    }
+    @OnlyIf({ jdk>=7 && windows })
+    void requiresJDK7AndWindows() {
+        result << 'JDK 7 Windows'
+    }
+}
+上面的注解接受一个闭包作为参数，只需要把value声明为Class即可
+@Retention(RetentionPolicy.RUNTIME)
+@interface OnlyIf {
+    Class value()                    
+}
+
+元注解
+声明元注解，元注解也就是注解别名，在编译时被其它注解代替（一个注解是一个或多个注解的别名）
+元注解用来减少代码上使用注解的数目
+下面代码用了两个注解
+@Service
+@Transactional
+class MyTransactionalService {}
+下面代码只有一个注解，但作用和上面是一样的
+@TransactionalService                           
+class MyTransactionalService {}
+元注解的声明和常规注解是一样的，只是使用标注了@AnnotationCollector，目的是用来收集其它多个注解
+import groovy.transform.AnnotationCollector
+
+@Service                                        
+@Transactional                                  
+@AnnotationCollector                            
+@interface TransactionalService {
+}
+元注解的行为，支持预编译和源码形式的元注解，意味着元注解或许被预编译，或当前正在编译的同一个源码中
+元注解的定义和使用都必须在Groovy中，不能和Java代码有任何关系
+def annotations = MyTransactionalService.annotations*.annotationType()
+assert (Service in annotations)
+assert (Transactional in annotations)
+在语义分析编译阶段会把元注解转换回多个被收集的注解
+元注解参数，元注解可以收集带参数的注解
+@Timeout(after=3600)
+@Dangerous(type='explosive')
+@AnnotationCollector
+public @interface Explosive {}
+默认会收集注解的参数值，且可以重写参数值
+@Explosive(after=0)                 
+class Bomb {}
+如果两个注解定义了相同的参数名，默认处理器会把这两个注解的参数值都重写
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Foo {
+   String value()                                   
+}
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Bar {
+    String value()                                  
+}
+
+@Foo
+@Bar
+@AnnotationCollector
+public @interface FooBar {}                         
+
+@Foo('a')
+@Bar('b')
+class Bob {}                                        
+
+assert Bob.getAnnotation(Foo).value() == 'a'        
+println Bob.getAnnotation(Bar).value() == 'b'       
+
+@FooBar('a')
+class Joe {}                                        
+assert Joe.getAnnotation(Foo).value() == 'a'        
+println Joe.getAnnotation(Bar).value() == 'a' 
+如果多个注解存在同名参数，那么这些参数的类型必须能够互相兼容，否则报错
+自定义注解处理器
+一个自定义注解处理器会让你选择如何把元注解的参数值传入被收集的注解
+
+1.4.2 特征
+特征是语言的结构化构建，允许
+组合行为、接口的运行时实现、重写行为、与静态类型检查或编译兼容
+它们可以被看作是接口，可以同时包含默认实现和状态，使用trait关键字
+trait FlyingAbility {                           
+        String fly() { "I'm flying!" }          
+}
+它可以像常规接口那样被使用，使用implements关键字
+class Bird implements FlyingAbility {}          
+def b = new Bird()                              
+assert b.fly() == "I'm flying!"          
+特征允许一个宽范围的能力，从简单的组合到测试
+
+方法
+公共方法，在特征里定义方法和在类里定义方法一样
+trait FlyingAbility {                           
+        String fly() { "I'm flying!" }          
+}
+抽象方法，特征里可以声明抽象方法，因此需要被实现的类来实现
+trait Greetable {
+    abstract String name()                              
+    String greeting() { "Hello, ${name()}!" }           
+}
+被一个类来实现
+class Person implements Greetable {                     
+    String name() { 'Bob' }                             
+}
+
+def p = new Person()
+assert p.greeting() == 'Hello, Bob!'     
+私有方法，特征也可以定义私有方法，这些方法将不出现在特征接口契约中
+trait Greeter {
+    private String greetingMessage() {                      
+        'Hello from a private method!'
+    }
+    String greet() {
+        def m = greetingMessage()                           
+        println m
+        m
+    }
+}
+class GreetingMachine implements Greeter {}                 
+def g = new GreetingMachine()
+assert g.greet() == "Hello from a private method!"          
+try {
+    assert g.greetingMessage()                              
+} catch (MissingMethodException e) {
+    println "greetingMessage is private in trait"
+}
+特征只支持公共的和私有的这两种方法，受保护的和包级别的不支持
+this的意思，this表示实现特征的类实例对象，特征就像超类
+trait Introspector {
+    def whoAmI() { this }
+}
+class Foo implements Introspector {}
+def foo = new Foo()
+foo.whoAmI()将返回同一个实例foo
+assert foo.whoAmI().is(foo)
+接口，特征可以实现接口，使用implements关键字
+interface Named {                                       
+    String name()
+}
+trait Greetable implements Named {                      
+    String greeting() { "Hello, ${name()}!" }
+}
+class Person implements Greetable {                     
+    String name() { 'Bob' }                             
+}
+
+def p = new Person()
+assert p.greeting() == 'Hello, Bob!'                    
+assert p instanceof Named                               
+assert p instanceof Greetable  
+属性，特征可以定义属性
+trait Named {
+    String name                             
+}
+class Person implements Named {}            
+def p = new Person(name: 'Bob')             
+assert p.name == 'Bob'                      
+assert p.getName() == 'Bob'    
+字段
+私有字段，因为特征允许使用私有方法，因此也可以使用私有字段来存储状态
+trait Counter {
+    private int count = 0                   
+    int count() { count += 1; count }       
+}
+class Foo implements Counter {}             
+def f = new Foo()
+assert f.count() == 1                       
+assert f.count() == 2
+这是和Java8虚拟扩展方法的主要不同，虚拟扩展方法不能带有状态，特征可以
+从Java6开始的Groovy就支持特征，因为它们的实现不依赖于虚拟扩展方法
+这意味着即使从一个Java类的角度来把特征看作常规接口，接口将没有默认方法，只有抽象方法
+公有字段，公有字段和私有字段一样，但为了避免菱形继承问题
+字段名称在实现类中将被重新映射
+trait Named {
+    public String name                      
+}
+class Person implements Named {}            
+def p = new Person()                        
+p.Named__name = 'Bob'   
+字段名称依赖于特征的完全限定名。包名中的点被替换为下划线
+再用两个下划线去连接字段的名称
+如果包名是my.package，特征名是Foo，字段名是bar
+最终在实现类中的名字是my_package_Foo__bar
+虽然特征支持公有字段，但是不建议使用，被认为是不好的实践
+
+行为组合
+特征可以以一个受控的方式实现多继承
+trait FlyingAbility {                           
+        String fly() { "I'm flying!" }          
+}
+trait SpeakingAbility {
+    String speak() { "I'm speaking!" }
+}
+一个类实现两个特征
+class Duck implements FlyingAbility, SpeakingAbility {} 
+
+def d = new Duck()                                      
+assert d.fly() == "I'm flying!"                         
+assert d.speak() == "I'm speaking!"        
+特征加强了对象间重用的能力，通过已存在行为的组合来创建新的类
+重写默认方法，特征可以为方法提供默认实现，但在实现类里可以被重写
+class Duck implements FlyingAbility, SpeakingAbility {
+    String quack() { "Quack!" }                         
+    String speak() { quack() }                          
+}
+
+def d = new Duck()
+assert d.fly() == "I'm flying!"                         
+assert d.quack() == "Quack!"                            
+assert d.speak() == "Quack!"      
+扩展特征
+单一继承，特征可以继承一个其它特征，使用extends关键字
+trait Named {
+    String name                                     
+}
+trait Polite extends Named {                        
+    String introduce() { "Hello, I am $name" }      
+}
+class Person implements Polite {}
+def p = new Person(name: 'Alice')                   
+assert p.introduce() == 'Hello, I am Alice'
+多继承，可选的，一个特征可以继承多个特征
+这种情况，所有被继承的特征都必须放在implements关键字后
+trait WithId {                                      
+    Long id
+}
+trait WithName {                                    
+    String name
+}
+trait Identified implements WithId, WithName {}
+动态类型和特征
+动态代码，特征可以调用任何动态代码，像常规的Groovy类那样
+这意味着，在特征中的一个方法体里面，可以调用那些假定将会在实现类中存在的方法
+不用显式的在一个接口中声明这些方法，意思就是特征完全兼容动态类型
+调用的方法不存在，被methodMissing方法处理
+trait SpeakingDuck {
+    String speak() { quack() }                      
+}
+class Duck implements SpeakingDuck {
+    String methodMissing(String name, args) {
+        "${name.capitalize()}!"                     
+    }
+}
+def d = new Duck()
+assert d.speak() == 'Quack!' 
+特征里的动态方法，特征里也可以定义MOP方法，像methodMissing或者propertyMissing
+实现类将继承特征的这些行为
+trait DynamicObject {                               
+    private Map props = [:]
+    def methodMissing(String name, args) {
+        name.toUpperCase()
+    }
+    def propertyMissing(String prop) {
+        props[prop]
+    }
+    void setProperty(String prop, Object value) {
+        props[prop] = value
+    }
+}
+
+class Dynamic implements DynamicObject {
+    String existingProperty = 'ok'                  
+    String existingMethod() { 'ok' }                
+}
+def d = new Dynamic()
+assert d.existingProperty == 'ok'                   
+assert d.foo == null                                
+d.foo = 'bar'                                       
+assert d.foo == 'bar'                               
+assert d.existingMethod() == 'ok'                   
+assert d.someMethod() == 'SOMEMETHOD'
+多继承冲突
+默认的冲突解决方法，一个类可以实现多个特征
+如果一个特征定义的一个方法签名和其它特征的一个方法签名相同
+冲突就产生了
+trait A {
+    String exec() { 'A' }               
+}
+trait B {
+    String exec() { 'B' }               
+}
+class C implements A,B {}    
+这时，默认的行为是最后声明的特征胜出，上例中就是B
+def c = new C()
+assert c.exec() == 'B'
+用户自己解决冲突，可以显示选择调用哪一个方法，使用Trait.super.foo语法
+上例中，我们可以强迫选择特征A的方法
+class C implements A,B {
+    String exec() { A.super.exec() }    
+}
+def c = new C()
+assert c.exec() == 'A'  
+特征的运行时实现
+在运行时实现一个特征，Groovy支持运行时动态实现特征
+允许你使用一个特征装饰一个已存在的对象
+trait Extra {
+    String extra() { "I'm an extra method" }            
+}
+class Something {                                       
+    String doSomething() { 'Something' }                
+}
+上面没有实现特征，下面调用将失败
+def s = new Something()
+s.extra()
+可以使用下面的语法在运行时做到（强制）
+def s = new Something() as Extra                        
+s.extra()                                               
+s.doSomething()   
+当把一个对象强制成一个特征，操作的结果已经不是同一个实例了
+保证强制的对象实现原来对象实现的全部特征和接口
+结果将不是原来类的一个实例
+一次实现多个特征，你可以使用withTraits方法而不是as关键字
+trait A { void methodFromA() {} }
+trait B { void methodFromB() {} }
+
+class C {}
+
+def c = new C()
+c.methodFromA()                     
+c.methodFromB()                     
+def d = c.withTraits A, B           
+d.methodFromA()                     
+d.methodFromB()        
+链接行为
+Groovy支持堆叠式特征的概念。如果当前特征没有能力处理消息的话就代理到下一个特征
+interface MessageHandler {
+    void on(String message, Map payload)
+}
+可以通过应用多个小的行为来组成一个消息处理器，在特征里定义一个默认实现的处理器
+trait DefaultHandler implements MessageHandler {
+    void on(String message, Map payload) {
+        println "Received $message with payload $payload"
+    }
+}
+实现这个特征的任何类都将继承默认实现处理器的行为
+class SimpleHandler implements DefaultHandler {}
+现在你所想要的是记录所有的消息，除了默认的处理器之外，还可以这些写
+class SimpleHandlerWithLogging implements DefaultHandler {
+    void on(String message, Map payload) {                                  
+        println "Seeing $message with payload $payload"                     
+        DefaultHandler.super.on(message, payload)                           
+    }
+}
+以上的方法可以工作，但是有大的弊端
+日志逻辑绑定到一个具体的处理器了
+在on方法里有一个对DefaultHandler的显式引用，如果改变了类实现的特征，代码被破坏
+一个可选的方案，我们可以再写一个特征，它的职责被限定于日志记录
+trait LoggingHandler implements MessageHandler {                            
+    void on(String message, Map payload) {
+        println "Seeing $message with payload $payload"                     
+        super.on(message, payload)                                          
+    }
+}
+最后一行的super把调用代理到链接中的下一个特征
+然后我们的类可以被写成这样
+class HandlerWithLogger implements DefaultHandler, LoggingHandler {}
+def loggingHandler = new HandlerWithLogger()
+loggingHandler.on('test logging', [:])
+将输出
+Seeing test logging with payload [:]
+Received test logging with payload [:]
+因为优先级规则暗指LoggingHandler胜出，因为它最后声明
+因此对on方法的调用将使用LoggingHandler的实现，后面有一个对super的调用
+意味着链接中的下一个特征，下一个特征是DefaultHandler，也将被调用
+如果我们添加第三个处理器后，这种方式的好处变得非常明显，负责处理以say开头的消息
+trait SayHandler implements MessageHandler {
+    void on(String message, Map payload) {
+        if (message.startsWith("say")) {                                    
+            println "I say ${message - 'say'}!"
+        } else {
+            super.on(message, payload)                                      
+        }
+    }
+}
+最终的处理器像这样
+class Handler implements DefaultHandler, SayHandler, LoggingHandler {}
+def h = new Handler()
+h.on('foo', [:])
+h.on('sayHello', [:])
+首先经过LoggingHandler，然后经过SayHandler，如果不是以say开头，再经过DefaultHandler
+这种方式非常强大，它允许你写处理器，而不用知道其它处理器
+且让你以你想要的顺序组合它们
+上面代码将输出
+Seeing foo with payload [:]
+Received foo with payload [:]
+Seeing sayHello with payload [:]
+I say Hello!
+如果把LoggingHandler移到链接中的第二个，输出将不同
+class AlternateHandler implements DefaultHandler, LoggingHandler, SayHandler {}
+h = new AlternateHandler()
+h.on('foo', [:])
+h.on('sayHello', [:])
+将输出
+Seeing foo with payload [:]
+Received foo with payload [:]
+I say Hello!
+因为以say开头的消息在SayHandler里被消费掉，不会再往后传
+特征里面super的语意，如果一个类实现了多个特征，对一个没有限定的super的调用
+如果类实现了另一个特征，调用被代理到链接中的下一个特征
+如果链接中已没有其它特征，super将引用该实现类的超类
+利用这种行为可以装饰final类
+trait Filtering {                                       
+    StringBuilder append(String str) {                  
+        def subst = str.replace('o','')                 
+        super.append(subst)                             
+    }
+    String toString() { super.toString() }              
+}
+def sb = new StringBuilder().withTraits Filtering       
+sb.append('Groovy')
+assert sb.toString() == 'Grvy'     
+上面示例中当遇到super时，因为目标对象没有实现其它特征
+所以方法调用的是原始的append方法，即StringBuilder的方法
+toString方法也是这样的
+
+高级特性
+单一抽象方法（SAM）类型强制，如果一个特征定义单一一个抽象方法
+它是单一抽象方法类型强制的候选者
+trait Greeter {
+    String greet() { "Hello $name" }        
+    abstract String getName()               
+}
+因为getName是特征的单一抽象方法，你可以这样写
+Greeter greeter = { 'Alice' }
+闭包变成了单一抽象方法的实现
+甚至可以这样写，直接使用闭包调用
+void greet(Greeter g) { println g.greet() } 
+greet { 'Alice' }  
+于Java8默认方法的不同
+在Java8中接口可以定义方法的默认实现。如果一个类实现了一个接口
+没有对默认方法提供实现，接口的默认实现将被选择
+特征的行为和这一样，但是有一个主要的不同，如果一个类实现了一个特征
+但是不提供特征方法的实现，那么将总是使用特征对方法的默认实现
+这种特性可以用于以一种非常精确的方式来组合行为，在你想重新一个已经被实现方法的行为情况时
+import groovy.transform.CompileStatic
+import org.codehaus.groovy.control.CompilerConfiguration
+import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer
+import org.codehaus.groovy.control.customizers.ImportCustomizer
+
+class SomeTest extends GroovyTestCase {
+    def config
+    def shell
+
+    void setup() {
+        config = new CompilerConfiguration()
+        shell = new GroovyShell(config)
+    }
+    void testSomething() {
+        assert shell.evaluate('1+1') == 2
+    }
+    void otherTest() { /* ... */ }
+}
+在上例中使用一个配置来运行一些测试方法，如果想换用不同的配置来运行这些相同的测试方法
+一个选择是创建子类，重写配置方法
+class AnotherTest extends SomeTest {
+    void setup() {
+        config = new CompilerConfiguration()
+        config.addCompilationCustomizers( ... )
+        shell = new GroovyShell(config)
+    }
+}
+如果你的测试类很多的话，你需要为每个测试类都创建一个子类，重写配置方法
+且重写的这些配置方法代码完全一样，一个主意是创建一个特征
+trait MyTestSupport {
+    void setup() {
+        config = new CompilerConfiguration()
+        config.addCompilationCustomizers( new ASTTransformationCustomizer(CompileStatic) )
+        shell = new GroovyShell(config)
+    }
+}
+然后把它用在子类创建中
+class AnotherTest extends SomeTest implements MyTestSupport {}
+class YetAnotherTest extends SomeTest2 implements MyTestSupport {}
+它将允许我们戏剧性地减少样板代码，减少漏改的风险
+即使配置方法在超类中已经被实现，因为特征被声明到了测试类的接口列表位置
+方法行为将来自于特征的实现，而不是超类的实现
+这个特性非常有用，当你无法访问超类的源码时
+它可以用来mock方法，或在子类中强制一个方法的特定实现
+它让你重构你的代码，并把重写逻辑保持在一个单一的特征里
+当类实现该特征时，将继承一个新的行为
+可选的，可以使用新代码重写任何地方的方法
+值得注意的是，如果你使用运行时特征，特征里的方法总是优先于被代理对象里的方法
+class Person {
+    String name                                         
+}
+trait Bob {
+    String getName() { 'Bob' }                          
+}
+
+def p = new Person(name: 'Alice')
+assert p.name == 'Alice'                                
+def p2 = p as Bob                                       
+assert p2.name == 'Bob'             
+注意，动态特征强制返回一个不同的对象，只实现了原来的接口和特征
+如果特征里有默认实现，则使用特征的默认实现，否则使用原来对象的实现
+
+与混入的不同
+与混入相比有几个概念性的不同，在Groovy中可以得到，注意我们讨论的是运行时混入
+首先，特征里定义的方法在字节码里可见
+在内部，特征被表示为接口（不带默认方法）和若干帮助类
+这意味着一个对象实现一个特征实际是实现一个接口
+从Java的角度这些方法是可见的
+它们兼容类型检查和静态编译
+相反的，通过混入加入的方法，只在运行时可见
+class A { String methodFromA() { 'A' } }        
+class B { String methodFromB() { 'B' } }        
+A.metaClass.mixin B                             
+def o = new A()
+assert o.methodFromA() == 'A'                   
+assert o.methodFromB() == 'B'                   
+assert o instanceof A                           
+assert !(o instanceof B)                
+最后一点实际上非常重要，说明了一个混入比特征有利的地方
+实例不会被改变，如果把某个类混入另一个，不会有第三个类产生
+原来响应A的方法将继续响应A，即使被混入
+
+静态方法、属性和字段
+特征里可以定义静态方法，但是会有许多限制
+带有静态方法的特征不能被静态编译或类型检查
+所有的静态方法、属性、字段都是动态被访问的（这是来自JVM的一个限制）
+特征对于实现类被解释成一个模板，这意味着每一个实现类将获得它自己的静态方法、属性、字段
+因此特征里声明的静态成员并不属于这个特征，属于它的实现类
+trait TestHelper {
+    public static boolean CALLED = false        
+    static void init() {                        
+        CALLED = true                           
+    }
+}
+class Foo implements TestHelper {}
+Foo.init()                                      
+assert Foo.TestHelper__CALLED
+通常不建议使用公有字段，如果想使用的话，必须明白下面的代码将失败
+Foo.CALLED = true
+因为没有静态字段CALLED定义在特征本身里（静态成员不属于特征，属于实现类）
+如果有两个不同的实现类，每一个类都有一个不同的静态字段
+class Bar implements TestHelper {}              
+class Baz implements TestHelper {}              
+Bar.init()                                      
+assert Bar.TestHelper__CALLED                   
+assert !Baz.TestHelper__CALLED       
+
+状态陷阱的继承
+我们已经看到特征是有状态的，特征可以定义字段或属性，当类实现一个特征
+它在每一个特征的基础上获得这些字段或属性
+trait IntCouple {
+    int x = 1
+    int y = 2
+    int sum() { x+y }
+}
+一个类实现了特征
+class BaseElem implements IntCouple {
+    int f() { sum() }
+}
+def base = new BaseElem()
+assert base.f() == 3
+如果我们这样写
+class Elem implements IntCouple {
+    int x = 3                                       
+    int y = 4                                       
+    int f() { sum() }                               
+}
+def elem = new Elem()
+如果我们调用方法，结果依然不变
+assert elem.f() == 3
+因为sum方法访问的是特征的字段，所以它使用定义在特征里的字段值
+如果想使用实现类里的值，需要使用getter和setter对字段解引用
+trait IntCouple {
+    int x = 1
+    int y = 2
+    int sum() { getX()+getY() }
+}
+
+class Elem implements IntCouple {
+    int x = 3
+    int y = 4
+    int f() { sum() }
+}
+def elem = new Elem()
+assert elem.f() == 7
+在特征里使用了在实现类里才会有的方法
+
+自我类型
+特征的类型约束，有时你想写一个特征只用于某个类型
+你想应用一个特征到一个类，这个类继承了另一个不受你控制的类，并且仍然能够调用那些方法
+class CommunicationService {
+    static void sendMessage(String from, String to, String message) {       
+        println "$from sent [$message] to $to"
+    }
+}
+
+class Device { String id }                                                  
+
+trait Communicating {
+    void sendMessage(Device to, String message) {
+        CommunicationService.sendMessage(id, to.id, message)                
+    }
+}
+
+class MyDevice extends Device implements Communicating {}                   
+
+def bob = new MyDevice(id:'Bob')
+def alice = new MyDevice(id:'Alice')
+bob.sendMessage(alice,'secret')            
+可以清晰地看到，Communicating特征只能应用于Device，但是并没有显式的契约来说明这点
+因为特征不能继承类，代码编译和运行没有问题，因为特征方法中的id将被动态解析
+问题是没有任何措施阻止特征用于其它不是Device的类，任何类只要有id就行了
+没有id的将导致一个运行时错误
+问题甚至更复杂，如果你想启用类型检查或在特征上应用@CompileStatic，特征对于
+它自己是一个Device的情况什么都不知道，类型检查器将抱怨不能找到id属性
+一个可能的方法是显式给特征添加一个getId方法，但是并不能解决所有问题
+如果一个方法要求this作为参数，实际要求它是一个Device
+class SecurityService {
+    static void check(Device d) { if (d.id==null) throw new SecurityException() }
+}
+如果你想要在特征里调用这个，需要显式地把this转换成Device，将是代码变得不可读
+
+自我类型注解
+为了使这种契约明显，使类型检查器知道自己的类型，Groovy提供了@SelfType注解
+让你声明实现这个特征的类必须继承或实现的类型
+如果这种类型约束不满足的话抛出一个编译时错误
+@SelfType(Device)
+@CompileStatic
+trait Communicating {
+    void sendMessage(Device to, String message) {
+        SecurityService.check(this)
+        CommunicationService.sendMessage(id, to.id, message)
+    }
+}
+如果实现类没有继承Device的话，产生编译时错误
+class MyDevice implements Communicating {} // forgot to extend Device
+class 'MyDevice' implements trait 'Communicating' but does not extend self type class 'Device'
+总之，自我类型是一种非常强大的方式在特征上声明约束，而不需要直接在特征里声明契约
+限制
+与AST转换兼容，特征并不是正式兼容AST转换，其中某些像@CompileStatic将应用到特征本身（不是实现类）
+然而其它将应用到实现类和特征，并没有绝对的保证，一个运行在特征上的AST转化会像在一个常规上那样
+因此使用它需要自己承担风险
+前缀后缀操作符，在特征里，不允许使用前缀后缀操作符更新特征的字段
+trait Counting {
+    int x
+    void inc() {
+        x++                             
+    }
+    void dec() {
+        --x                             
+    }
+}
+class Counter implements Counting {}
+def c = new Counter()
+c.inc()
+以上用法不被允许，一个变通的方法是使用+=替代
+
+1.5 闭包
+在Groovy中闭包是一个开放、匿名的代码块，可以带有参数，可以返回一个值，可以被赋值给一个变量
+闭包可以引用声明在它自己范围内的变量，与闭包的正式定义相反，在Groovy语言中，闭包也可以包含自由变量
+这些变量定义在闭包的范围之外，当打破闭包的正式概念，将提供许多不同的好处
+语法，定义一个闭包
+{ [closureParameters -> ] statements }
+中括号里是可选的逗号分隔的参数列表，语句是0个或多个Groovy语句，参数和方法的参数列表相似
+这些参数可以带有类型，也可以不带类型
+当指定参数列表的话，->字符是必须要有的，目的是为了分开参数和闭包体，语句部分由0到多个Groovy语句组成
+{ item++ }                                          
+
+{ -> item++ }                                       
+
+{ println it } 闭包的隐式参数it
+
+{ it -> println it }                                
+
+{ name -> println name }                            
+
+{ String x, int y ->                                
+    println "hey ${x} the value is ${y}"
+}
+
+{ reader ->                                         
+    def line = reader.readLine()
+    line.trim()
+}
+闭包作为一个对象，一个闭包是Closure类的一个实例，可以被赋值给一个变量或字段，尽管它是一个代码块
+def listener = { e -> println "Clicked on $e.source" }      
+assert listener instanceof Closure
+Closure callback = { println 'Done!' }                      
+Closure<Boolean> isTextFile = {
+    File it -> it.name.endsWith('.txt')                     
+}
+调用一个闭包，闭包作为一个匿名代码块，可以像方法那样被调用，下面是无参的
+def code = { 123 }
+闭包里的代码只有在闭包被调用时才会执行，把变量当作常规方法来调用即可
+assert code() == 123
+可选地，可以显示的使用call方法
+assert code.call() == 123
+带参数的闭包遵循同样的原则
+def isOdd = { int i-> i%2 == 1 }                            
+assert isOdd(3) == true                                     
+assert isOdd.call(2) == false                               
+
+def isEven = { it%2 == 0 } 使用隐式参数it
+assert isEven(3) == false                                   
+assert isEven.call(2) == true        
+与方法不同，闭包被调用时总会返回一个值
+参数
+常规参数，闭包参数和常规方法参数遵循相同的原则
+一个可选类型、一个名字、一个可选默认值，参数用逗号分隔
+def closureWithOneArg = { str -> str.toUpperCase() }
+assert closureWithOneArg('groovy') == 'GROOVY'
+
+def closureWithOneArgAndExplicitType = { String str -> str.toUpperCase() }
+assert closureWithOneArgAndExplicitType('groovy') == 'GROOVY'
+
+def closureWithTwoArgs = { a,b -> a+b }
+assert closureWithTwoArgs(1,2) == 3
+
+def closureWithTwoArgsAndExplicitTypes = { int a, int b -> a+b }
+assert closureWithTwoArgsAndExplicitTypes(1,2) == 3
+
+def closureWithTwoArgsAndOptionalTypes = { a, int b -> a+b }
+assert closureWithTwoArgsAndOptionalTypes(1,2) == 3
+
+def closureWithTwoArgAndDefaultValue = { int a, int b=2 -> a+b }
+assert closureWithTwoArgAndDefaultValue(1) == 3
+隐式参数，当闭包没有显示定义一个参数列表（使用->），闭包总是定义一个隐式参数，名字是it
+def greeting = { "Hello, $it!" }
+assert greeting('Patrick') == 'Hello, Patrick!'
+严格等于下面的代码
+def greeting = { it -> "Hello, $it!" }
+assert greeting('Patrick') == 'Hello, Patrick!'
+如果你想声明一个闭包，不接受任何参数，调用时必须严格地不带参数
+你必须显式使用空参数列表来声明
+def magicNumber = { -> 42 }
+
+// this call will fail because the closure doesn't accept any argument
+magicNumber(11)
+可变参数，闭包可以像方法那样声明可变参数，可变参数方法就是那些方法可以接收
+一个可变数目的参数，如果最后一个参数是一个可变长度或一个数组
+def concat1 = { String... args -> args.join('') }           
+assert concat1('abc','def') == 'abcdef'                     
+def concat2 = { String[] args -> args.join('') }            
+assert concat2('abc', 'def') == 'abcdef'
+
+def multiConcat = { int n, String... args ->                
+    args.join('')*n
+}
+assert multiConcat(2, 'abc','def') == 'abcdefabcdef'
+代理（委托）策略
+Groovy闭包 VS lambda表达式，Groovy定义闭包作为Closure类的实例，这与Java8中的lambda表达式非常不同
+代理是Groovy闭包中的一个关键概念，在lambda表达式中没有与之对等的东西
+改变代理或改变闭包的代理策略的这种能力使Groovy可以设计出漂亮的领域特定语言
+拥有者，代理和this
+为了理解代理的概念，必须首先解释闭包里this的意思，一个闭包实际定义三种不同的事情
+this对应于闭包定义所在的封闭类
+owner对应于闭包定义所在的封闭对象，要么是一个类或是一个闭包
+delegate对应于一个第三方对象，在那里方法方法调用或属性被解析，无论什么时候消息的接收者没有被定义
+this的意思，在闭包里，调用getThisObject将返回闭包定义所在的封闭类，等同于使用一个显式的this
+class Enclosing {
+    void run() {
+        def whatIsThisObject = { getThisObject() }          
+        assert whatIsThisObject() == this                   
+        def whatIsThis = { this }                           
+        assert whatIsThis() == this                         
+    }
+}
+class EnclosedInInnerClass {
+    class Inner {
+        Closure cl = { this }                               
+    }
+    void run() {
+        def inner = new Inner()
+        assert inner.cl() == inner                          
+    }
+}
+class NestedClosures {
+    void run() {
+        def nestedClosures = {
+            def cl = { this }                               
+            cl()
+        }
+        assert nestedClosures() == this                     
+    }
+}
+闭包里的this表示在闭包的外层且离闭包定义最近的那个类，无论是否存在内部类，无论闭包是否有嵌套
+可以在闭包里调用封闭类的方法
+class Person {
+    String name
+    int age
+    String toString() { "$name is $age years old" }
+
+    String dump() {
+        def cl = {
+            String msg = this.toString()               
+            println msg
+            msg
+        }
+        cl()
+    }
+}
+def p = new Person(name:'Janice', age:74)
+assert p.dump() == 'Janice is 74 years old'
+闭包的所有者，与闭包里的this非常相似，但有一个不易察觉的不同之处
+它将返回直接封闭对象（它的外层且与它相邻），是一个类或一个闭包
+class Enclosing {
+    void run() {
+        def whatIsOwnerMethod = { getOwner() }               
+        assert whatIsOwnerMethod() == this                   
+        def whatIsOwner = { owner }                          
+        assert whatIsOwner() == this                         
+    }
+}
+class EnclosedInInnerClass {
+    class Inner {
+        Closure cl = { owner }                               
+    }
+    void run() {
+        def inner = new Inner()
+        assert inner.cl() == inner                           
+    }
+}
+class NestedClosures {
+    void run() {
+        def nestedClosures = {
+            def cl = { owner }                               
+            cl()
+        }
+        assert nestedClosures() == nestedClosures            
+    }
+}
+上面例子使用getOwner方法或owner记法来表示所有者
+闭包的代理，可以使用getDelegate方法或delegate属性来访问，这对在Groovy中构建领域特定语言
+是一个很强大的概念，闭包中的this和owner引用的是一个闭包的词法范围
+delegate是一个用户定义对象，闭包可以使用它，默认delegate被设置为owner
+class Enclosing {
+    void run() {
+        def cl = { getDelegate() }                          
+        def cl2 = { delegate }                              
+        assert cl() == cl2()                                
+        assert cl() == this                                 
+        def enclosed = {
+            { -> delegate }.call()                          
+        }
+        assert enclosed() == enclosed                       
+    }
+}
+闭包的代理可以被改变成任何对象，定义两个互不相关的类，但都有name属性
+class Person {
+    String name
+}
+class Thing {
+    String name
+}
+
+def p = new Person(name: 'Norman')
+def t = new Thing(name: 'Teapot')
+定义一个闭包，用来在delegate上获取name属性
+def upperCasedName = { delegate.name.toUpperCase() }
+通过改变闭包的delegate，可以看到目标对象将发生改变
+upperCasedName.delegate = p
+assert upperCasedName() == 'NORMAN'
+upperCasedName.delegate = t
+assert upperCasedName() == 'TEAPOT'
+在这一点上，与在闭包的词法范围里定义一个target变量没有什么不同
+def target = p
+def upperCasedNameUsingVar = { target.name.toUpperCase() }
+assert upperCasedNameUsingVar() == 'NORMAN'
+然而，主要的不同是
+最后一个示例中，target是一个局部变量，在闭包里被引用
+代理可以被透明地使用，这就是说不用在方法调用前面加前缀delegate.
+
+代理策略，无论何时，在一个闭包里，一个属性被访问且没有显式设置接受对象（即在哪个对象上解析这个属性）
+这是代理策略将被使用
+class Person {
+    String name
+}
+def p = new Person(name:'Igor')
+def cl = { name.toUpperCase() }                 
+cl.delegate = p                                 
+assert cl() == 'IGOR'  
+上面代码里的name属性将透明地在delegate对象上解析，这是一个非常强大的方式
+在闭包里解析属性或方法调用，不需要设置一个显式的delegate，接收者，调用将被成功执行
+因为闭包的默认代理策略使它这样的，一个闭包实际上定义了多个解析策略
+Closure.OWNER_FIRST，是默认策略，如果属性或方法存在于owner上，将调用owner上的，否则调用delegate上的
+Closure.DELEGATE_FIRST，反转了逻辑，delegate首先使用，然后是owner
+Closure.OWNER_ONLY，只在owner上解析，忽略delegate
+Closure.DELEGATE_ONLY，只在delegate上解析，忽略owner
+Closure.TO_SELF，需要高级元编程技术的开发者可以使用，希望实现一个自定义解析策略
+将不再在owner或delegate上解析，而只在闭包类自身上解析
+只有自己定义Closure类的子类时，使用它才有意义
+下面是owner优先的示例
+class Person {
+    String name
+    def pretty = { "My name is $name" }             
+    String toString() {
+        pretty()
+    }
+}
+class Thing {
+    String name                                     
+}
+
+def p = new Person(name: 'Sarah')
+def t = new Thing(name: 'Teapot')
+
+assert p.toString() == 'My name is Sarah'           
+p.pretty.delegate = t                               
+assert p.toString() == 'My name is Sarah' 
+然而，可以改变闭包的解析策略
+p.pretty.resolveStrategy = Closure.DELEGATE_FIRST
+assert p.toString() == 'My name is Teapot'
+通过改变resolveStrategy，我们正在改变Groovy将解析隐式this引用的方式
+在这种情况下，name首先去delegate里寻找，如果没有找到，再去owner里寻找
+delegate优先和只有delegate，或owner优先和只有owner的区别，
+class Person {
+    String name
+    int age
+    def fetchAge = { age }
+}
+class Thing {
+    String name
+}
+
+def p = new Person(name:'Jessica', age:42)
+def t = new Thing(name:'Printer')
+def cl = p.fetchAge
+cl.delegate = p
+assert cl() == 42
+cl.delegate = t
+assert cl() == 42
+cl.resolveStrategy = Closure.DELEGATE_ONLY
+cl.delegate = p
+assert cl() == 42
+cl.delegate = t
+try {
+    cl()
+    assert false
+} catch (MissingPropertyException ex) {
+    // "age" is not defined on the delegate
+}
+
+GStrings里的闭包
+def x = 1
+def gs = "x = ${x}"
+assert gs == 'x = 1'
+如果接着再写上
+x = 2
+assert gs == 'x = 2'
+你将看到执行失败
+GString只延迟计算值的toString表示
+GString中的${x}语法不表示一个闭包而是一个表达式$x，当GString声明当时就会被计算
+上例中GString创建时x的值为1，当assert调用时，GString被计算，1将使用toString被转换为String
+当我们把x改为2，它已经变成了一个不同的对象，GString仍然引用原来的那个
+如果GString引用的值是可变的，GString将只改变toString的表示
+如果引用被改变，什么都不会发生
+GString在创建时，持有一份对变量所指对象的引用，如果后来变量所指的对象被换成了其它对象
+但GString所指的对象仍然是原来的那个
+如果需要在GString中使用真的闭包，强迫变量的延迟计算，你需要使用可选的语法${→ x}
+def x = 1
+def gs = "x = ${-> x}"
+assert gs == 'x = 1'
+
+x = 2
+assert gs == 'x = 2'
+下面这个例子将说明上面的问题
+class Person {
+    String name
+    String toString() { name }          
+}
+def sam = new Person(name:'Sam')        
+def lucy = new Person(name:'Lucy')      
+def p = sam                             
+def gs = "Name: ${p}"                   
+assert gs == 'Name: Sam'                
+p = lucy                                
+assert gs == 'Name: Sam'                
+sam.name = 'Lucy'                       
+assert gs == 'Name: Lucy'     
+如果不想使用上例中的方法，必须在GString中使用闭包，显式为闭包声明一个空的参数列表
+class Person {
+    String name
+    String toString() { name }
+}
+def sam = new Person(name:'Sam')
+def lucy = new Person(name:'Lucy')
+def p = sam
+// Create a GString with lazy evaluation of "p"
+def gs = "Name: ${-> p}"
+assert gs == 'Name: Sam'
+p = lucy
+assert gs == 'Name: Lucy'
+延迟计算只在被调用时再去上下文中解析变量的引用，而不是在定义时就已经解析
+
+闭包强制，闭包能够被转换成接口类型或单一抽象方法类型
+
+函数式编程，闭包就像lambda表达式在Java8里的一样，在Groovy中是函数式编程范式的核心
+函数上的一些函数式编程的操作可以直接应用到Closure类上
+柯里化，在Groovy中柯里化是指分部应用的概念，它并不对应于函数式编程中真正柯里化的概念
+因为Groovy在闭包上应用了不同的作用域规则，在Groovy中柯里化让你设置闭包参数列表中一个参数的值
+它将返回一个新的闭包，参数列表比原来少了一个参数
+左柯里化，事实是设置闭包最左边的参数
+def nCopies = { int n, String str -> str*n }    
+def twice = nCopies.curry(2)                    
+assert twice('bla') == 'blabla'                 
+assert twice('bla') == nCopies(2, 'bla')
+右柯里化，是设置闭包最后边的参数
+def nCopies = { int n, String str -> str*n }    
+def blah = nCopies.rcurry('bla')                
+assert blah(2) == 'blabla'                      
+assert blah(2) == nCopies(2, 'bla')
+基于索引的柯里化，如果一个闭包多于两个参数，可以使用ncurry设置任意一个参数
+def volume = { double l, double w, double h -> l*w*h }      
+def fixedWidthVolume = volume.ncurry(1, 2d)                 
+assert volume(3d, 2d, 4d) == fixedWidthVolume(3d, 4d)       
+def fixedWidthAndHeight = volume.ncurry(1, 2d, 4d)          
+assert volume(3d, 2d, 4d) == fixedWidthAndHeight(3d)
+记忆化，允许一个闭包的调用结果被缓存，在函数或闭包计算完成很慢的时候有用
+还需要确定经常使用相同的参数调用函数才行，典型的例子是斐波那契序列
+def fib
+fib = { long n -> n<2?n:fib(n-1)+fib(n-2) }
+assert fib(15) == 610 // slow!
+这是很幼稚的实现，经常使用相同的参数进行递归调用，导致一个指数增长的算法
+可以通过使用memoize来缓存结果
+fib = { long n -> n<2?n:fib(n-1)+fib(n-2) }.memoize()
+assert fib(25) == 75025 // fast!
+缓存使用参数的实际值，意味着应该非常小心当记忆化用于非基本类型或基本类型的装箱类型
+缓存的行为可以被改变，使用可选的方法
+memoizeAtMost将产生一个新的闭包，最多缓存n个值
+memoizeAtLeast将产生一个新的闭包，至少缓存n个值
+memoizeBetween将产生一个新的闭包，至少缓存m个值，最多缓存n个值
+所有记忆化缓存都使用LRU缓存算法
+组合，闭包组合对应于函数组合的概念，就是通过组合两个或多个函数来创建一个新的函数
+被组合的函数进行链式调用
+def plus2  = { it + 2 }
+def times3 = { it * 3 }
+
+def times3plus2 = plus2 << times3
+assert times3plus2(3) == 11
+assert times3plus2(4) == plus2(times3(4))
+
+def plus2times3 = times3 << plus2
+assert plus2times3(3) == 15
+assert plus2times3(5) == times3(plus2(5))
+
+// reverse composition
+assert times3plus2(3) == (times3 >> plus2)(3)
+沿着箭头的方法计算（从箭头后方往箭头前方计算）
+
+蹦床，递归算法经常被物理限制约束，最大堆栈高度
+如果一个方法递归调用自己太深，最后会导致堆栈溢出
+一种方法在这种情况下可以起到帮助，就是使用闭包和它的蹦床能力
+闭包被包装到TrampolineClosure里面，当调用时，一个蹦床闭包将调用原始闭包并等待它的结果
+如果调用结果是一个TrampolineClosure的另一个实例，或许创建作为一个对trampoline()方法调用的结果
+闭包将再次被调用，这种对返回的蹦床闭包实例的重复调用将继续，直到有一个值而不是一个蹦床闭包被返回为止
+这个值将变成蹦床的最终值，这种方式，调用将使序列化进行的，而不是填充一个堆栈
+下面是一个使用trampoline()实现阶乘的函数
+def factorial
+factorial = { int n, def accu = 1G ->
+    if (n < 2) return accu
+    factorial.trampoline(n - 1, n * accu)
+}
+factorial = factorial.trampoline()
+
+assert factorial(1)    == 1
+assert factorial(3)    == 1 * 2 * 3
+assert factorial(1000) // == 402387260.. plus another 2560 digits
+
+方法指针，经常碰到的实践是把一个常规方法当作闭包，比如你想使用闭包的柯里化能力
+但是对于正常的方法是不行的，不过在Groovy，你可以使用方法指针操作符
+能够从任何方法获得一个闭包
+
+1.6 语意
+语句
+变量定义，要么使用类型定义，要么使用def关键字定义
+String x
+def o
+def是关键字的替代，在变量定义中暗示你不关心它的类型，可以把def当作是Object的别名
+变量定义类型可以使用泛型进行精确提炼
+变量赋值，可以给变量赋值，并稍后使用它
+x = 1
+println x
+
+x = new java.util.Date()
+println x
+
+x = -3.1499392
+println x
+
+x = false
+println x
+
+x = "Hi"
+println x
+多重赋值，Groovy支持一个给多个变量赋值
+def (a, b, c) = [10, 20, 'foo']
+assert a == 10 && b == 20 && c == 'foo'
+还可以指定类型
+def (int i, String j) = [10, 'foo']
+assert i == 10 && j == 'foo'
+和声明变量时赋值一样，多重赋值也可以用于已存在的变量
+def nums = [1, 3, 5]
+def a, b, c
+(a, b, c) = nums
+assert a == 1 && b == 3 && c == 5
+这种语法适用于数组、列表和返回数组或列表的方法
+def (_, month, year) = "18th June 2009".split()
+assert "In $month of $year" == 'In June of 2009'
+上溢出和下溢出
+左边有太多的变量，超出的部分使用null填充
+def (a, b, c) = [1, 2]
+assert a == 1 && b == 2 && c == null
+右边有太多的变量，超出的部分被忽略
+def (a, b) = [1, 2, 3]
+assert a == 1 && b == 2
+使用多重赋值结构对象，把多重赋值和下标操作方法（getAt，putAt）联合起来实现对象结构
+@Immutable
+class Coordinates {
+    double latitude
+    double longitude
+
+    double getAt(int idx) {
+        if (idx == 0) latitude
+        else if (idx == 1) longitude
+        else throw new Exception("Wrong coordinate index, use 0 or 1")
+    }
+}
+实例化对象并解构它的经度和纬度
+def coordinates = new Coordinates(latitude: 43.23, longitude: 3.67) 
+
+def (la, lo) = coordinates                                          
+
+assert la == 43.23                                                  
+assert lo == 3.67
+控制结构
+条件结构，if/else语法
+def x = false
+def y = false
+
+if ( !x ) {
+    x = true
+}
+
+assert x == true
+
+if ( x ) {
+    x = false
+} else {
+    y = true
+}
+
+assert x == y
+嵌套的if/else if语法
+if ( ... ) {
+    ...
+} else if (...) {
+    ...
+} else {
+    ...
+}
+switch/case，是为了向后兼容Java代码，可以向下通过共享相同代码的case达到多重匹配
+一个不同是Groovy可以处理任何类型的值，不同类型的匹配可以被执行
+def x = 1.23
+def result = ""
+
+switch ( x ) {
+    case "foo":
+        result = "found foo"
+        // lets fall through
+
+    case "bar":
+        result += "bar"
+
+    case [4, 5, 6, 'inList']:
+        result = "list"
+        break
+
+    case 12..30:
+        result = "range"
+        break
+
+    case Integer:
+        result = "integer"
+        break
+
+    case Number:
+        result = "number"
+        break
+
+    case ~/fo*/: // toString() representation of x matches the pattern?
+        result = "foo regex"
+        break
+
+    case { it < 0 }: // or { x < 0 }
+        result = "negative"
+        break
+
+    default:
+        result = "default"
+}
+
+assert result == "number"
+支持以下类型的比较
+Class值匹配，如果变量是它的一个实例
+正则表达式匹配，如果值的toString()形式表示匹配正则
+集合值匹配，如果值存在于集合中
+闭包值匹配，如果调用闭包返回一个Groovy的真
+如果以上都没有用的话，当值本身相等时匹配
+循环结构
+经典的for循环
+String message = ''
+for (int i = 0; i < 5; i++) {
+    message += 'Hi '
+}
+assert message == 'Hi Hi Hi Hi Hi '
+for in循环，适用于任何种类的数组、列表、Map
+// iterate over a range
+def x = 0
+for ( i in 0..9 ) {
+    x += i
+}
+assert x == 45
+
+// iterate over a list
+x = 0
+for ( i in [0, 1, 2, 3, 4] ) {
+    x += i
+}
+assert x == 10
+
+// iterate over an array
+def array = (0..4).toArray()
+x = 0
+for ( i in array ) {
+    x += i
+}
+assert x == 10
+
+// iterate over a map
+def map = ['abc':1, 'def':2, 'xyz':3]
+x = 0
+for ( e in map ) {
+    x += e.value
+}
+assert x == 6
+
+// iterate over values in a map
+x = 0
+for ( v in map.values() ) {
+    x += v
+}
+assert x == 6
+
+// iterate over the characters in a string
+def text = "abc"
+def list = []
+for (c in text) {
+    list.add(c)
+}
+assert list == ["a", "b", "c"]
+Groovy也支持Java形式的使用冒号的for each循环，这是变量的类型是强制必须要有的
+while循环
+def x = 0
+def y = 5
+
+while ( y-- > 0 ) {
+    x++
+}
+
+assert x == 5
+异常处理，和Java一样，try/catch/finally
+try {
+    'moo'.toLong()   // this will generate an exception
+    assert false     // asserting that this point should never be reached
+} catch ( e ) {
+    assert e in NumberFormatException
+}
+可以直接在try后面跟一个finally，无论try里是否抛异常，finally总会被执行
+def z
+try {
+    def i = 7, j = 0
+    try {
+        def k = i / j
+        assert false        //never reached due to Exception in previous line
+    } finally {
+        z = 'reached here'  //always executed even if Exception thrown
+    }
+} catch ( e ) {
+    assert e in ArithmeticException
+    assert z == 'reached here'
+}
+多重捕获，一个catch块里定义多个异常
+try {
+    /* ... */
+} catch ( IOException | NullPointerException e ) {
+    /* one block to handle 2 exceptions */
+}
+强大的断言，被分解为3部分
+assert [left expression] == [right expression] : (optional message)
+如果为真，什么都不发生，如果为假，为每一部分都提供一个可视的表示
+assert 1+1 == 3，将返回
+Caught: Assertion failed:
+
+assert 1+1 == 3
+        |  |
+        2  false
+当表达式比较复杂的时候将非常有用
+def x = 2
+def y = 7
+def z = 5
+def calc = { a,b -> a*b+1 }
+assert calc(x,y) == [x,z].sum()
+打印出每一部分的值
+assert calc(x,y) == [x,z].sum()
+       |    | |  |   | |  |
+       15   2 7  |   2 5  7
+                 false
+如果不想要一个漂亮的打印的错误消息，可以回退到自定义错误消息
+def x = 2
+def y = 7
+def z = 5
+def calc = { a,b -> a*b+1 }
+assert calc(x,y) == z*z : 'Incorrect computation result'
+将打印出
+Incorrect computation result. Expression: (calc.call(x, y) == (z * z)). Values: z = 5, z = 5
+标签语句，任何语句都可以被关联一个标签，标签并不冲撞代码的语意，用来使代码更易读
+given:
+    def x = 1
+    def y = 2
+when:
+    def z = x+y
+then:
+    assert z == 3
+尽管不改变标签语句的语意，可以在break语句中使用标签，作为跳转的目标
+即使可以这样使用，代码风格通常被认为是不好的实践
+for (int i=0;i<10;i++) {
+    for (int j=0;j<i;j++) {
+        println "j=$j"
+        if (j == 5) {
+            break exit
+        }
+    }
+    exit: println "i=$i"
+}
+默认，标签不冲撞代码语意，然而它们属于抽象语法树（AST）
+可以使用这些信息在代码上执行AST转换，因此导致不同的语意
+这尤其是Spock框架所做的，使测试更容易
+表达式
+GPath表达式，是一个集成到Groovy中的路径表达式语言
+允许嵌套的结构化数据的各个部分被找出，这种情况，
+与XPath对于XML来说具有相似的目标和作用域，GPath经常用于XML处理的上下文中
+不过它真的可以应用于任何的对象导航，XPath使用一个像文件系统路径的记号
+一个各部分用斜线分割的树形层次，GPath使用一个点记号来执行对象导航
+可以指定一个路径来指向你感兴趣的对象或元素
+a.b.c，对于XML来说，返回所有在a中的b下面的c元素
+a.b.c，对于对象来说，返回a中的属性b的属性c
+这两种情况，GPath表达式可以视为在一个对象图上的一次查询
+对象类型的，经常用于对象的实例化和组合
+XML类型的，经常用于XML的解析
+当查询XML时，GPath表达式可以使用@符号来引用元素上定义的属性
+a["@href"]，像map那样的记法，所有a元素的href属性
+a.'@href'，属性记法，与上一个相同
+a.@href，直接记法，与上一个相同
+对象导航，一个类里面有下面的方法
+void aMethodFoo() { println "This is aMethodFoo." }
+下面的GPath表达式将获得方法名
+assert ['aMethodFoo'] == this.class.methods.name.grep(~/.*Foo/)
+其实，上面的表达式产生一个String列表，每一项都是该类的一个方法名，且都以Foo结尾
+下面的方法都定义在这个类里
+void aMethodBar() { println "This is aMethodBar." } 
+void anotherFooMethod() { println "This is anotherFooMethod." } 
+void aSecondMethodBar() { println "This is aSecondMethodBar." }
+结果将变为
+assert ['aMethodBar', 'aSecondMethodBar'] as Set == this.class.methods.name.grep(~/.*Bar/) as Set
+表达式解构，可以分解表达式this.class.methods.name.grep(~/.*Bar/)，来知道GPath如何被计算
+this.class，等同于this.getClass()，返回一个Class对象
+this.class.methods，等同于this.getClass().getMethods()，返回一个Method对象的数组
+this.class.methods.name，在数组的每个元素应用一个属性访问，产生一个结果列表
+this.class.methods.name.grep(…?)，在上一步列表的每个元素上调用grep方法，产生一个结果列表
+this.class.methods返回一个数组，因为是调用Java方法this.getClass().getMethods()得到的
+GPath表达式并没有约定说看见s就意味着是一个列表或其它类似于列表的东西
+GPath一个强大的特性是在一个集合上的属性访问被转换到集合的每一个元素上进行
+把结果再收集到一个集合中，因此，表达式this.class.methods.name可以用Java如下表示
+List<String> methodNames = new ArrayList<String>();
+for (Method method : this.getClass().getMethods()) {
+   methodNames.add(method.getName());
+}
+return methodNames;
+数组访问记法（下标）可被用在GPath表达式中集合出现的地方（索引从0开始）
+assert 'aSecondMethodBar' == this.class.methods.name.grep(~/.*Bar/).sort()[1]
+XML导航中的GPath
+def xmlText = """
+              | <root>
+              |   <level>
+              |      <sublevel id='1'>
+              |        <keyVal>
+              |          <key>mykey</key>
+              |          <value>value 123</value>
+              |        </keyVal>
+              |      </sublevel>
+              |      <sublevel id='2'>
+              |        <keyVal>
+              |          <key>anotherKey</key>
+              |          <value>42</value>
+              |        </keyVal>
+              |        <keyVal>
+              |          <key>mykey</key>
+              |          <value>fizzbuzz</value>
+              |        </keyVal>
+              |      </sublevel>
+              |   </level>
+              | </root>
+              """
+def root = new XmlSlurper().parseText(xmlText.stripMargin())
+assert root.level.size() == 1 
+assert root.level.sublevel.size() == 2 
+assert root.level.sublevel.findAll { it.@id == 1 }.size() == 1 
+assert root.level.sublevel[1].keyVal[0].key.text() == 'anotherKey'
+提升和强制
+数字提升，请参考数学操作符部分
+闭包到类型的强制
+把闭包赋值给一个单一抽象方法类型（类型只定义一个抽象方法）
+函数式接口的
+interface Predicate<T> {
+    boolean accept(T obj)
+}
+抽象类的
+abstract class Greeter {
+    abstract String getName()
+    void greet() {
+        println "Hello, $name"
+    }
+}
+任何闭包使用as关键字都可以进行这样的转换
+Predicate filter = { it.contains 'G' } as Predicate
+assert filter.accept('Groovy') == true
+
+Greeter greeter = { 'Groovy' } as Greeter
+greeter.greet()
+自动Groovy 2.2.0以后，as关键字变成可选的了，可以省略它
+Predicate filter = { it.contains 'G' }
+assert filter.accept('Groovy') == true
+
+Greeter greeter = { 'Groovy' }
+greeter.greet()
+这意味着你也可以使用方法指针，像下面这样
+boolean doFilter(String s) { s.contains('G') }
+
+Predicate filter = this.&doFilter
+assert filter.accept('Groovy') == true
+
+Greeter greeter = GroovySystem.&getVersion
+greeter.greet()
+使用闭包去调用一个接受一个SAM类型参数的方法
+public <T> List<T> filter(List<T> source, Predicate<T> predicate) {
+    source.findAll { predicate.accept(it) }
+}
+可以使用一个闭包来调用它，不需要创建一个接口的显式实现
+assert filter(['Java','Groovy'], { it.contains 'G'} as Predicate) == ['Groovy']
+因为自从Groovy 2.2.0以后，可以省略显式的强制，就好像方法本来接受一个闭包那样
+assert filter(['Java','Groovy']) { it.contains 'G'} == ['Groovy']
+正如看到的那样，使用闭包语法调用函数是有好处的，就是说把闭包放到括号的外面，改进代码的可读性
+闭包强制成任何类型，除了SAM之外，闭包可以被强制成任何类型，尤其是接口类型
+interface FooBar {
+    int foo()
+    void bar()
+}
+可以使用as关键字把闭包强制成这个接口类型
+def impl = { println 'ok'; 123 } as FooBar
+这产生一个类，它的所有方法都使用这个闭包来实现
+assert impl.foo() == 123
+impl.bar()
+也可以把一个闭包强制成任何类
+class FooBar {
+    int foo() { 1 }
+    void bar() { println 'bar' }
+}
+
+def impl = { println 'ok'; 123 } as FooBar
+
+assert impl.foo() == 123
+impl.bar()
+Map强制成其它类型，通常使用一个闭包去实现一个具有多个方法的类或接口看起来并不是那么回事
+作为一种选择，Groovy允许把一个map强制成一个接口或类，这时，map的key被解释为方法名
+对应的value作为方法的实现，下面示例把map强制成一个Iterator
+def map
+map = [
+  i: 10,
+  hasNext: { map.i > 0 },
+  next: { map.i-- },
+]
+def iter = map as Iterator
+当然这是一个非常有预谋的示例，但是说明了这个概念，只需要实现实际被调用的方法
+如果一个不在map中的方法被调用，将抛出MissingMethodException或UnsupportedOperationException异常
+异常类型取决于调用时传递的参数
+interface X {
+    void f()
+    void g(int n)
+    void h(String s, int n)
+}
+
+x = [ f: {println "f called"} ] as X
+x.f() // method exists
+x.g() // MissingMethodException here
+x.g(5) // UnsupportedOperationException here
+字符串强制成枚举类型，Groovy允许透明地把字符串强制成枚举值
+enum State {
+    up,
+    down
+}
+可以把一个字符串赋值给枚举，且不用显式使用as关键字
+State st = 'up'
+assert st == State.up
+也可以使用GString作为值
+def val = "up"
+State st = "${val}"
+assert st == State.up
+然而，下面这样将抛出一个运行时错误IllegalArgumentException
+State st = 'not an enum value'
+也可以在switch语句中使用隐式强制
+State switchState(State st) {
+    switch (st) {
+        case 'up':
+            return State.down // explicit constant
+        case 'down':
+            return 'up' // implicit coercion for return types
+    }
+}
+特别地，请看如何使用字符串常量的情况。但是如果你使用一个字符串去调用一个具有枚举类型参数的方法
+你仍然必须使用一个显式的as关键字来进行强制
+assert switchState('up' as State) == State.down
+assert switchState(State.down) == State.up
+自定义类型强制，一个类通过实现asType方法可以定义一个自定义强制策略
+自定义强制使用as操作符来显式调用，且绝不会隐式被调用
+class Polar {
+    double r
+    double phi
+}
+class Cartesian {
+   double x
+   double y
+}
+如果想把Polar转变成Cartesian，一个方式是在Polar里定义asType方法
+def asType(Class target) {
+    if (Cartesian==target) {
+        return new Cartesian(x: r*cos(phi), y: r*sin(phi))
+    }
+}
+这样就可以使用as强制操作符了
+def sigma = 1E-16
+def polar = new Polar(r:1.0,phi:PI/2)
+def cartesian = polar as Cartesian
+assert abs(cartesian.x-sigma) < sigma
+把代码整合到一起，像这样
+class Polar {
+    double r
+    double phi
+    def asType(Class target) {
+        if (Cartesian==target) {
+            return new Cartesian(x: r*cos(phi), y: r*sin(phi))
+        }
+    }
+}
+也可以在Polar类的外部定义asType方法，这是一个非常好的实践
+如果你想为一个已关闭的类或那些你不拥有源码的类定义自定义强制策略时，使用metaclass
+Polar.metaClass.asType = { Class target ->
+    if (Cartesian==target) {
+        return new Cartesian(x: r*cos(phi), y: r*sin(phi))
+    }
+}
+字面量类vs变量类和as操作符，只有对一个类静态引用时，才可以使用as关键字
+interface Greeter {
+    void greet()
+}
+def greeter = { println 'Hello, Groovy!' } as Greeter // Greeter is known statically
+greeter.greet()
+但是，如果你通过反射来获得，例如Class.forName
+Class clazz = Class.forName('Greeter')
+这时使用as关键字将失败
+greeter = { println 'Hello, Groovy!' } as clazz
+// throws:
+// unable to resolve class clazz
+// @ line 9, column 40.
+//   greeter = { println 'Hello, Groovy!' } as clazz
+失败的原因是as关键字只适用于字面量类，相反，你需要调用asType方法
+greeter = { println 'Hello, Groovy!' }.asType(clazz)
+greeter.greet()
+可选性
+可选的括号，方法调用可以省略括号，如果至少有一个参数，这样就没有歧义了
+println 'Hello World'
+def maximum = Math.max 5, 10
+没有参数的或有歧义的方法调用，必须加上括号
+println()
+println(Math.max(5, 10))
+可选的分号，在Groovy中，行末的分号可以省略，如果这行只有一个语句
+assert true;更习惯被写成assert true
+如果一行有多个语句的话需要分号分隔开
+boolean a = true; assert a
+可选的return关键字，方法或闭包里最后一个被计算的表达式的值被返回
+int add(int a, int b) {
+    return a+b
+}
+assert add(1, 2) == 3
+可以简写为
+int add(int a, int b) {
+    a+b
+}
+assert add(1, 2) == 3
+可选的public关键字，默认，Groovy的类和方法都是public的
+public class Server {
+    public String toString() { "a server" }
+}
+和下面的类完全一样
+class Server {
+    String toString() { "a server" }
+}
+Groovy里的真，Groovy决定一个表达式是真是假，通过应用下面的规则
+布尔表达式，true为真
+assert true
+assert !false
+集合和数组，非空就是真
+assert [1, 2, 3]
+assert ![]
+匹配器，至少有一个匹配为真
+assert ('a' =~ /a/)
+assert !('a' =~ /b/)
+迭代器和枚举，有下一个元素为真（hasNext）
+assert [0].iterator()
+assert ![].iterator()
+Vector v = [0] as Vector
+Enumeration enumeration = v.elements()
+assert enumeration
+enumeration.nextElement()
+assert !enumeration
+Map，非空就是真
+assert ['one' : 1]
+assert ![:]
+字符串，非空字符串，GString和CharSequences为真
+assert 'a'
+assert !''
+def nonEmpty = 'a'
+assert "$nonEmpty"
+def empty = ''
+assert !"$empty"
+数字，非0就是真
+assert 1
+assert 3.5
+assert !0
+对象引用，非null就是真
+assert new Object()
+assert !null
+使用asBoolean()方法自定义真
+class Color {
+    String name
+
+    boolean asBoolean(){
+        name == 'green' ? true : false
+    }
+}
+将调用这个方法把一个对象强制成一个布尔值
+assert new Color(name: 'green')
+assert !new Color(name: 'red')
+类型
+可选类型，即使不给出一个变量的显式类型，程序也可以正常运行
+作为一个动态语言，Groovy自然实现了这个特性
+String aString = 'foo'
+assert aString.toUpperCase()
+可以写成这样，在运行时解析类型
+def aString = 'foo'                         
+assert aString.toUpperCase()
+当把这个特性和静态类型检查联合起来时会非常有用，因为类型检查器执行类型推断
+同样，方法里的参数类型也不是必须的
+String concat(String a, String b) {
+    a+b
+}
+assert concat('foo','bar') == 'foobar'
+可以使用def关键字同时替换返回类型和参数类型，为了更好地利用动态类型
+def concat(def a, def b) {                              
+    a+b
+}
+assert concat('foo','bar') == 'foobar'                  
+assert concat(1,2) == 3       
+这里建议使用def关键字来描述这个方法的目的是假定用于任何类型
+从技术上将，我们可以使用Object来代替，结果将是一样的
+事实上，在Groovy中，def是严格的等同于使用Object的
+最终，类型（也就是def关键字）可以被同时完全移除，但是，如果想从返回类型移除它
+需要给方法加上一个显式的修饰符，这样编译器就可以分辨出方法声明和方法调用的不同了
+private concat(a,b) {                                   
+    a+b
+}
+assert concat('foo','bar') == 'foobar'                  
+assert concat(1,2) == 3     
+对于public的API来说，移除方法的参数类型或方法的返回类型一般被认为是一种不好的实践
+当然，def用于局部变量并不是什么大问题，因为变量的可见性被限制在方法本身的内部
+然而对于一个方法参数来说，在方法签名中def将被转换成Object，用户将很难知道参数真正期望的类型
+这意味着，你应该在真的显式依赖于动态类型时，才这样使用（省略类型）
+其它情况，都要显式给出具体的类型
+
+静态类型检查，默认情况下，Groovy在编译时执行最小类型检查，因为它主要是一个动态语言
+一个静态编译器通常做的更多的检查，在这里编译时做不到。通过运行时元编程加入的一个方法
+可能改变一个类或对象的运行时行为
+class Person {                                                          
+    String firstName
+    String lastName
+}
+def p = new Person(firstName: 'Raymond', lastName: 'Devos')             
+assert p.formattedName == 'Raymond Devos'
+像上面的例子在动态语言中非常常见，并不会抛出任何错误，如何能够这样
+在Java中这典型地在编译时就报错，在Groovy中编译时不报错，如果代码正确的话
+在运行时也不会报错，事实上，这在运行时能够工作，一个可能是依赖运行时元编程
+因此在Person类的声明后面加入下面这一行就足够了
+Person.metaClass.getFormattedName = { "$delegate.firstName $delegate.lastName" }
+这意味着通常在Groovy中，你不能做任何有关一个运行时对象的类型超出了它声明时的类型的假设
+即使你知道它，在编译时你不能决定什么方法将被调用，哪个属性将被获取
+然而如果你的程序不依赖于动态特性，且你来自于静态世界（特别的，来自一个Java思想集）
+在编译时不捕获这样的错误会很惊讶，就像我们在上一节中看到的，编译器不能确定这是一个错误
+要是编译器知道那是什么，你必须显式通知编译器切换到一个类型检查模式
+这通过在类或方法上添加一个注解@groovy.lang.TypeChecked来实现
+当类型检查被激活，编译器执行更多的工作
+类型推断被激活，意味着即使你使用def关键字声明一个局部变量
+类型检查器将能够从赋值中推断出变量的类型
+方法调用在编译时解析，意味着如果一个方法没有在类上声明，编译器将报错
+通常，所有在静态语言中使用的编译时错误都会出现，方法未找到，属性未找到
+方法调用类型不兼容，数字精度错误
+我们将描述不同情况下类型检查器的行为和解释使用@TypeChecked的限制
+@TypeChecked注解，编译时激活类型检查，可以用在类上或方法上
+@groovy.transform.TypeChecked
+class Calculator {
+    int sum(int x, int y) { x+y }
+}
+class Calculator {
+    @groovy.transform.TypeChecked
+    int sum(int x, int y) { x+y }
+}
+第一种情况，类中所有的方法，属性，字段，内部类等等都将被类型检查
+第二种情况，只有这个方法和它包含的潜在的闭包或匿名内部类将被类型检查
+跳过部分，类型检查的范围可以被限制，如果一个类被类型检查，可以告诉类型检查器
+来跳过一个方法，通过在它上面使用@TypeChecked(TypeCheckingMode.SKIP)
+import groovy.transform.TypeChecked
+import groovy.transform.TypeCheckingMode
+
+@TypeChecked                                        
+class GreetingService {
+    String greeting() {                             
+        doGreet()
+    }
+
+    @TypeChecked(TypeCheckingMode.SKIP)             
+    private String doGreet() {
+        def b = new SentenceBuilder()
+        b.Hello.my.name.is.John                     
+        b
+    }
+}
+def s = new GreetingService()
+assert s.greeting() == 'Hello my name is John'
+上面示例中SentenceBuilder依赖动态代码，并没有真正的Hello方法或属性
+因此类型检查器通常将抱怨且编译将失败，因为那个方法被标记为TypeCheckingMode.SKIP
+对这个方法的类型检查将被跳过，所以代码可以被编译
+下面部分描述Groovy中类型检查的语意
+类型检查赋值，一个类型A的对象o能够被赋值给一个类型T的变量，只有在
+T等于A
+Date now = new Date()
+T是String、boolean、Boolean或Class
+String s = new Date() // implicit call to toString
+Boolean boxed = 'some string'       // Groovy truth
+boolean prim = 'some string'        // Groovy truth
+Class clazz = 'java.lang.String'    // class coercion
+o是null且T不是基本数据类型
+String s = null         // passes
+int i = null            // fails
+T是一个数组且A是一个数组，且A的元素类型可被赋值给T的元素类型
+int[] i = new int[4]        // passes
+int[] i = new String[4]     // fails
+T是一个数组且A是一个列表，且A的元素类型可被赋值给T的元素类型
+int[] i = [1,2,3]               // passes
+int[] i = [1,2, new Date()]
+T是A的超类（父类）
+AbstractList list = new ArrayList()     // passes
+LinkedList list = new ArrayList()       // fails
+T是A实现的一个接口
+List list = new ArrayList()             // passes
+RandomAccess list = new LinkedList()    // fails
+T或A是一个基本数据类型，且它们的装箱类型是可赋值的
+int i = 0
+Integer bi = 1
+int x = new Integer(123)
+double d = new Float(5f)
+T扩展（继承）了Closure类型且A是一个单一抽象方法类型（SAM）
+Runnable r = { println 'Hello' }
+interface SAMType {
+    int doSomething()
+}
+SAMType sam = { 123 }
+assert sam.doSomething() == 123
+abstract class AbstractSAM {
+    int calc() { 2* value() }
+    abstract int value()
+}
+AbstractSAM c = { 123 }
+assert c.calc() == 246
+T和A都继承自java.lang.Number，且遵从下面的表格
+列表和映射构造函数，除了上面的赋值规则，在类型检查模式，如果一个赋值被认为是非法的
+一个字面量列表或一个字面量映射A能够被赋值给一个T类型的变量，如果
+赋值本身是一个变量声明，A是一个字面量列表，T有一个构造函数，它的所有参数匹配这个字面量列表的所有元素类型
+赋值本身是一个变量声明，A是一个字面量映射，T有一个无参构造函数，且它的属性对应于映射的所有key
+常规情况
+@groovy.transform.TupleConstructor
+class Person {
+    String firstName
+    String lastName
+}
+Person classic = new Person('Ada','Lovelace')
+使用列表构造函数
+Person list = ['Ada','Lovelace']
+使用映射构造函数
+Person map = [firstName:'Ada', lastName:'Lovelace']
+如果使用映射构造函数，在映射的所有key上会有额外的检查，就是检查是否一个同名的属性被定义
+@groovy.transform.TupleConstructor
+class Person {
+    String firstName
+    String lastName
+}
+Person map = [firstName:'Ada', lastName:'Lovelace', age: 24]
+编译时类型检查器将抛出一个错误，类Person没有age这个属性
+方法解析，在类型检查模式，方法在编译时被解析，解析通过名字和参数来工作
+方法的返回类型与方法是否被选择无关，实参的类型匹配形参的类型遵从下面规则
+一个A类型的实参o能够用于一个T类型的形参，只有
+T等于A
+int sum(int x, int y) {
+    x+y
+}
+assert sum(3,4) == 7
+T是一个String且A是一个GString
+String format(String str) {
+    "Result: $str"
+}
+assert format("${3+4}") == "Result: 7"
+o是null且T不是一个基本数据类型
+String format(int value) {
+    "Result: $value"
+}
+assert format(7) == "Result: 7"
+format(null)           // fails
+T是一个数组且A是一个数组，且A的元素类型可被赋值给T的元素类型
+String format(String[] values) {
+    "Result: ${values.join(' ')}"
+}
+assert format(['a','b'] as String[]) == "Result: a b"
+format([1,2] as int[])              // fails
+T是A的超类（父类）
+String format(AbstractList list) {
+    list.join(',')
+}
+format(new ArrayList())              // passes
+String format(LinkedList list) {
+    list.join(',')
+}
+format(new ArrayList())              // fails
+T是A实现的一个接口
+String format(List list) {
+    list.join(',')
+}
+format(new ArrayList())                  // passes
+String format(RandomAccess list) {
+    'foo'
+}
+format(new LinkedList())                 // fails
+T或A是基本数据类型，且它们的装箱类型是可被赋值的
+int sum(int x, Integer y) {
+    x+y
+}
+assert sum(3, new Integer(4)) == 7
+assert sum(new Integer(3), 4) == 7
+assert sum(new Integer(3), new Integer(4)) == 7
+assert sum(new Integer(3), 4) == 7
+T扩展（继承）Closure类型，且A是一个单一抽象方法类型（SAM）
+interface SAMType {
+    int doSomething()
+}
+int twice(SAMType sam) { 2*sam.doSomething() }
+assert twice { 123 } == 246
+abstract class AbstractSAM {
+    int calc() { 2* value() }
+    abstract int value()
+}
+int eightTimes(AbstractSAM sam) { 4*sam.calc() }
+assert eightTimes { 123 } == 984
+T和A都继承自java.lang.Number，遵从和上面那个表格一样的规则
+如果一个具有适合名称和参数的方法在编译时没有被找到，一个错误将被抛出
+与正常Groovy的不同是
+class MyService {
+    void doSomething() {
+        printLine 'Do something'            
+    }
+}
+printLine是一个错误，因为是在动态模式，错误在编译时不会被捕获
+上面示例中的类能够被编译，然而，你想创建一个MyService的实例
+然后调用doSomething方法，运行时将失败，因为printLine不存在，当然
+我们已经展示了Groovy如何使这成为一个完美的合法调用，例如通过捕获MethodMissingException
+或者实现一个自定义metaclass，但是如果你知道你不是在这种情况，@TypeChecked就可以上场了
+@groovy.transform.TypeChecked
+class MyService {
+    void doSomething() {
+        printLine 'Do something'            
+    }
+}
+printLine这次是一个编译时错误
+仅仅添加@TypeChecked将触发编译时方法解析，类型检查器尝试在MyService类上
+去找到一个printLine方法接受一个String参数，但是不能找到，编译将失败
+Cannot find matching method MyService#printLine(java.lang.String)
+理解类型检查器背后的逻辑非常重要，这是一个编译时检查，因此通过定义
+类型检查器不知道任何你做的运行时元编程，这意味着没有@TypeChecked的话将
+是完全正确的代码，将不会再进一步编译，如果你激活了类型检查
+这将是非常真的，如果你想起动态类型的话
+class Duck {
+    void quack() {              
+        println 'Quack!'
+    }
+}
+class QuackingBird {
+    void quack() {              
+        println 'Quack!'
+    }
+}
+@groovy.transform.TypeChecked
+void accept(quacker) {
+    quacker.quack()   //因为要进行类型检查，将产生一个编译时错误          
+}
+accept(new Duck())   
+有可能的变通方案，像引入一个接口，但是基本上通过激活类型检查，你获得了类型安全但是
+失去了语言的一些特性，Groovy引入一些特性像流式转型来减少类型检查和非类型检查之间的鸿沟
+
+类型推断，当代码注解了@TypeChecked，编译器执行类型推断，它并不简单地依赖于静态类型
+也使用多种不同的技术去推断变量的类型，返回类型，字面量等等，代码仍然整洁，即使激活了类型检查器
+def message = 'Welcome to Groovy!'              
+println message.toUpperCase()                   
+println message.upper() // compile time error
+toUpperCase可以被调用是因为message被推断为一个字符串类型
+类型推断中的变量vs字段，值得注意的是，虽然编译器在局部变量上执行类型推断
+但是并不在字段上执行任何种类的类型推断，总是回退到字段的声明类型
+class SomeClass {
+    def someUntypedField                                                                
+    String someTypedField                                                               
+
+    void someMethod() {
+        someUntypedField = '123'                                                        
+        someUntypedField = someUntypedField.toUpperCase()  // compile-time error        
+    }
+
+    void someSafeMethod() {
+        someTypedField = '123'                                                          
+        someTypedField = someTypedField.toUpperCase()                                   
+    }
+
+    void someMethodUsingLocalVariable() {
+        def localVariable = '123'                                                       
+        someUntypedField = localVariable.toUpperCase()                                  
+    }
+}
+def关键字严格等同于Object，其实就等于字段被声明为Object类型，虽然在方法中它被赋值了一个字符串
+但是编译器并不对字段执行任何种类的类型推断，还把它当作原始类型，即Object来对待
+所以在调用toUpperCase()出现编译错误，因为Object类没有这个方法
+为什么会有这种不同，原因是线程安全，在编译时，关于一个字段的类型我们不能做任何保证
+任何线程在任何时候可以访问任何字段，在一个字段被赋值为某个类型的变量这一行和下一行
+使用这个变量之间，另一个线程可能已经改变了字段的内容，对于局部变量不会存在这种情况
+因为局部变量只有一个线程在访问，我们知道赋给这个变量的值是否改变，因此，随着时间的流逝
+我们能够保证变量的类型是恒定的还是已发生了变化，注意，即使一个字段是final的，JVM也不能保证它
+因此，类型检查器并不会因为字段是否为final而表现不同的行为
+这是一个为什么我们建议使用强类型字段的原因。def用于局部变量的声明是完全没有问题的
+因为有类型推断，但对于字段却是不行的，同时字段也属于类的public API，因此类型很重要
+
+集合字面量类型推断，Groovy为多种不同类型字面量提供一个语法，有三种原生的集合字面量
+列表，使用[]字面量，映射，使用[:]字面量，范围，使用(..,..)字面量
+字面量的推断类型依赖于字面量的元素，遵从下面的表格
+可以看到类型推断使用泛型来描述集合内容，在集合包含不同类型元素时，类型检查器仍然会执行元素的类型推断
+但是使用最小上界的观念，两种类型A和B的最小上界被定义为类型
+对应于A和B的公共超类（父类）
+对应于A和B都实现了的接口
+如果A和B都是基本数据类型且A不等于B，它们的最小上界就是它们包装类的最小上界
+如果A和B只有一个公共接口，且它们的公共超类（父类）是Object，这时最小上界是公共接口
+最小上界表示A和B同时都能够被赋值给的最小类型，如果A和B都是String，那么它们的最小上界就是String
+class Top {}
+class Bottom1 extends Top {}
+class Bottom2 extends Top {}
+
+assert leastUpperBound(String, String) == String                    
+assert leastUpperBound(ArrayList, LinkedList) == AbstractList       
+assert leastUpperBound(ArrayList, List) == List                     
+assert leastUpperBound(List, List) == List                          
+assert leastUpperBound(Bottom1, Bottom2) == Top                     
+assert leastUpperBound(List, Serializable) == Object
+在上面示例中，最小上界总是可表示为正常的（JVM支持的）类型
+但是Groovy内部表示最小上界的类型可能比较复杂，你不能够用它来定义一个变量
+interface Foo {}
+class Top {}
+class Bottom extends Top implements Serializable, Foo {}
+class SerializableFooImpl implements Serializable, Foo {}
+Bottom和SerializableFooImpl的最小上界是什么，它们没有公共超类（除了Object之外）
+但是它们共享两个接口（Serializable和Foo），因此它们的最小上界是一个表示这两个接口联合的类型
+这个类型不能够被定义在源码里，然而Groovy知道它
+在集合类型推断（和通常的泛型类型推断）的上下文中，这变得很容易，因为元素类型被推断为最小上界
+interface Greeter { void greet() }                  
+interface Salute { void salute() }                  
+
+class A implements Greeter, Salute {                
+    void greet() { println "Hello, I'm A!" }
+    void salute() { println "Bye from A!" }
+}
+class B implements Greeter, Salute {                
+    void greet() { println "Hello, I'm B!" }
+    void salute() { println "Bye from B!" }
+    void exit() { println 'No way!' }               
+}
+def list = [new A(), new B()] //列表类型被推断为A和B的最小上界，就是这两个接口的联合体
+list.each {
+    it.greet() //调用正常，因为在最小上界中定义了
+    it.salute() //调用正常，因为在最小上界中定义了
+    it.exit() //编译时报错，因为在最小上界中没有定义，只定义在了B中
+}
+错误信息就像
+[Static type checking] - Cannot find matching method Greeter or Salute#exit()
+暗示exit方法既不在Greeter里面，也不在Salute里面，这两个接口定义在A和B的最小上界里
+
+instanceof推断，在正常非类型检查的Groovy里，你可以这样写
+class Greeter {
+    String greeting() { 'Hello' }
+}
+
+void doSomething(def o) {
+    if (o instanceof Greeter) {     
+        println o.greeting()        
+    }
+}
+
+doSomething(new Greeter())
+这个方法调用正常执行，因为方法是在运行时被选择的，相同的代码在Java中的话
+在调用greeting方法之前需要先把o转换成Greeter，因为方法是在编译时被选择的
+if (o instanceof Greeter) {
+    System.out.println(((Greeter)o).greeting());
+}
+然而，在Groovy中即使添加了@TypeChecked（激活类型检查）在doSomething方法上
+转型也不是必须的，编译器嵌入了instanceof推断使转型变成了可选的了
+流式转型，是Groovy类型检查模式的一个重要概念和类型推断的一个扩展，想法是编译器在
+一个代码流里有变量的类型推断的能力，而不仅仅是在变量初始化时才有这个能力
+@groovy.transform.TypeChecked
+void flowTyping() {
+    def o = 'foo'                       
+    o = o.toUpperCase()                 
+    o = 9d                              
+    o = Math.sqrt(o)                    
+}
+类型检查器知道一个变量的具体类型随着时间的流逝是不同的这个事实
+使用下面的代码代替最后一条语句
+o = 9d
+o = o.toUpperCase()
+类型检查器现在在编译时将失败，因为它知道当调用toUpperCase时o是一个double类型，所以编译时报错
+有一点需要着重理解，就是并不是在声明变量时使用了def关键字触发了类型推断。流式转型适用于任何
+类型的任何变量，使用显式类型声明一个变量只限制了能够赋值给变量的内容
+@groovy.transform.TypeChecked
+void flowTypingWithExplicitType() {
+    List list = ['a','b','c']           
+    list = list*.toUpperCase()//类型检查器知道现在是一个List<String>
+    list = 'foo'//不可以把String赋值给List，因此是类型检查错误
+}
+你也能注意到即使变量声明没有泛型信息，类型检查器知道元素类型，下面的代码编译失败
+@groovy.transform.TypeChecked
+void flowTypingWithExplicitType() {
+    List list = ['a','b','c']//被推断为List<String>
+    list.add(1)//编译时报错
+}
+要修复这个的话需要在声明中加一个显式泛型类型
+@groovy.transform.TypeChecked
+void flowTypingWithExplicitType() {
+    List<? extends Serializable> list = []                      
+    list.addAll(['a','b','c'])                                  
+    list.add(1)                                                 
+}
+流式转型已经被引入来减少经典和静态Groovy间的语意差别，考虑下面Java代码的行为
+public Integer compute(String str) {
+    return str.length();
+}
+public String compute(Object o) {
+    return "Nope";
+}
+// ...
+Object string = "Some string";          
+Object result = compute(string);        
+System.out.println(result);
+上面的Java代码将输出Nope，因为方法选择在编译时完成，是基于声明类型的，即使o在
+运行时是一个String，仍然调用Object版本的方法，因为o被声明为Object类型，总之
+在Java里声明类型非常重要，是变量类型，是参数类型或是返回类型
+在Groovy中，可以这样写
+int compute(String string) { string.length() }
+String compute(Object o) { "Nope" }
+Object o = 'string'
+def result = compute(o)
+println result
+但是这一次它将返回6，因为方法的选择是在运行时完成的，基于实际参数在运行时的类型
+因此运行时o是一个String，String类型的方法变体将被使用，注意这种行为与类型检查无关
+这是Groovy通常工作的方式，动态分发
+在类型检查的Groovy中，我们希望确定类型检查器在编译时选择的那个方法和运行时将选择的是同一个
+在通常情况这是不可能的，这是由语言的语意决定的，但是使用流式转型能够使这变得更好
+使用流式转型，当compute方法被调用时o被推断为一个String，因此带有一个String参数且返回一个int的
+版本被选择，这意味着我们能够推断出方法的返回类型将是一个int，不是一个String
+这对后续的调用和类型安全来说非常重要
+因此在类型检查的Groovy中，流式转型是一个非常重要的概念，也暗示了如果@TypeChecked被使用
+方法被选择是基于实参的推断类型的，而不是实参的声明类型，这并不能百分之百确保类型安全
+因为类型检查器有可能选择一个错误的方法，但是它确保与动态Groovy的语意最接近
+
+高级类型推断，流式转型和最小上界推断合起来被用于执行高级类型推断，确保在多种情况下的类型安全
+特别地，程序的控制结构有可能改变变量的推断类型
+class Top {
+   void methodFromTop() {}
+}
+class Bottom extends Top {
+   void methodFromBottom() {}
+}
+def o
+if (someCondition) {
+    o = new Top()                               
+} else {
+    o = new Bottom()                            
+}
+o.methodFromTop() //无论上面的if/else执行哪个，这个方法调用都是安全的
+o.methodFromBottom()  // compilation error
+当类型检查器访问一个if/else控制结构时，将检查在if/else所有分支里面被赋值的所有变量
+计算出所有被赋的值的最小上界，这个类型是if/else块后面被推断的变量的推断类型
+在这个示例中，if分支中o被赋值为一个Top，else分支中被赋值为一个Bottom，这两者的最小上界是Top
+因此在条件分支之后，编译器推断o作为一个Top，调用methodFromTop将因此被允许，methodFromBottom相反
+同样的逻辑存在于闭包、尤其是闭包共享的变量，闭包共享变量定义在闭包外，用在闭包内
+def text = 'Hello, world!'                          
+def closure = {
+    println text                                    
+}
+Groovy允许开发者使用这些变量，不用要求它们是final的，这意味着在闭包里它可能被赋值
+String result
+doSomething { String it ->
+    result = "Result: $it"
+}
+result = result?.toUpperCase()
+问题是一个闭包是一个独立的代码块在任何时候都可以被执行或不执行，特别地
+doSomething可能是异步的，这意味着一个闭包的闭包体不属于主控制流，基于这个原因
+对于每一个闭包共享变量，类型检查器也计算，这个变量所有被赋的值的最小上界
+在闭包作用域外面将使用这个最小上界作为推断类型
+class Top {
+   void methodFromTop() {}
+}
+class Bottom extends Top {
+   void methodFromBottom() {}
+}
+def o = new Top()                               
+Thread.start {
+    o = new Bottom()                            
+}
+o.methodFromTop()                               
+o.methodFromBottom()  // compilation error
+非常清晰地，当methodFromBottom被调用时，是没有保证的，在编译时或运行时o的类型将事实上就是Bottom
+它将有机会是Bottom类型，但是我们不能保证，因为它是异步的，意思就是当主线程执行到方法调用时
+上面那个子线程可能还没有执行对o赋值为Bottom，这时o其实还是一个Top，所以此时就是运行时报错
+所以无法保证，因此类型检查器将只允许在最小上界上的方法调用，这里就是Top类型上
+
+闭包和类型推断，类型检查器在闭包上执行特殊的推断，
+返回类型推断，类型检查器首先有能力做的事就是推断闭包的返回类型
+@groovy.transform.TypeChecked
+int testClosureReturnTypeInference(String arg) {
+    def cl = { "Arg: $arg" }                                
+    def val = cl()                                          
+
+    val.length()                                            
+}
+上面例子中的闭包返回一个字符串（更精确的说是一个GString）
+类型检查器能够推断出来所以允许调用length()方法
+不像方法那样需要显式声明它的返回类型，闭包不需要声明返回类型，可以从闭包体推断出返回类型
+值得注意的是，返回类型推断只能用于闭包，虽然类型检查器也可以在方法上做同样的事情
+但是在实践中并不希望这样，一般来说，方法可以被重写，我们不可能静态地确定，被调用的方法不是一个被重写的版本
+因此流类型转换认为某个方法返回某个值，然而实际上，它可能返回其它值
+@TypeChecked
+class A {
+    def compute() { 'some string' }             
+    def computeFully() {
+        compute().toUpperCase()                 
+    }
+}
+@TypeChecked
+class B extends A {
+    def compute() { 123 }                       
+}
+正如你所看到的，如果类型检查器依赖方法被推断的返回类型，利用流类型转换
+类型检查器能够决定调用toUpperCase是没有问题的，因为方法返回一个字符串
+事实上是一个编译错误，因为子类可以重写compute方法且返回一个不同的对象
+这里类B重写后返回一个int，因此在B的实例上调用computeFully将看到一个运行时错误
+编译器为了阻止这样的事情发生，使用方法声明的返回类型而不是推断的返回类型
+为了一致性，这种行为对于任何方法都是一样的，无论是static还是final的
+参数类型推断，对于闭包来说可以通过上下文推断它的参数类型，编译器有两种方式推断参数类型
+通过隐式的单一抽象方法类型强制，通过API元数据
+下面这个示例将编译失败，因为类型检查器没有能力推断出参数类型
+class Person {
+    String name
+    int age
+}
+
+void inviteIf(Person p, Closure<Boolean> predicate) {           
+    if (predicate.call(p)) {
+        // send invite
+        // ...
+    }
+}
+
+@groovy.transform.TypeChecked
+void failCompilation() {
+    Person p = new Person(name: 'Gerard', age: 55)
+    inviteIf(p) {                                               
+        it.age >= 18 // No such property: age                   
+    }
+}
+上面示例中，闭包体包含it.age，如果是动态的，没有类型检查的话，将正常运行
+因为运行时it的类型将是一个Person，不幸的是，在编译时，仅仅通过inviteIf的签名，绝不可能知道it的类型
+显式闭包参数，简言之，类型检查器在inviteIf方法上没有足够的上下文信息去静态地决定it的类型
+这意味着方法调用需要这些写
+inviteIf(p) { Person it ->                                  
+    it.age >= 18
+}
+通过显式地声明it变量的类型，可以变通这个问题，使代码静态地被检查
+从单一抽象方法类型来参数推断，对于API或框架设计者，有两种方式使这变得对用户来说更优雅
+因此你不必为闭包参数声明一个显式类型，首先的，也是最简单的，使用一个单一抽象方法类型代替闭包
+interface Predicate<On> { boolean apply(On e) }                 
+
+void inviteIf(Person p, Predicate<Person> predicate) {          
+    if (predicate.apply(p)) {
+        // send invite
+        // ...
+    }
+}
+
+@groovy.transform.TypeChecked
+void passesCompilation() {
+    Person p = new Person(name: 'Gerard', age: 55)
+
+    inviteIf(p) {                                               
+        it.age >= 18                                            
+    }
+}
+使用这种技术，我们撬动了闭包到单一抽象方法类型的自动强制这个Groovy的特性
+你应该使用闭包或是单一抽象方法类型这个问题真正取决于你需要做什么，在许多情况
+使用一个SAM接口就足够了，尤其是你考虑函数式接口（Java8里的那样），然而闭包提供了
+一些特性却是函数式接口不具有的，特别地，闭包可以有delegate和owner且在被调用前可以像
+一个对象那样被操作（例如，克隆，序列化，柯里化。。。），也支持多签名（多态）
+因此如果你需要那种类型的操作，请切换到更高级的类型推断注解
+原始的问题，需要被解决就是当涉及闭包参数类型推断时，也就是说静态地决定闭包的实参的类型
+而不用必须显式声明它们，是因为Groovy类型系统继承自Java类型系统，不足够来描述实参的类型
+@ClosureParams注解，Groovy提供这个注解的目的是完善类型信息，这个注解主要针对框架和API开发者
+想通过提供类型推断元数据来扩展类型检查器的能力，这很重要如果你的库使用闭包和你想最大级别的工具支持
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.FirstParam
+void inviteIf(Person p, @ClosureParams(FirstParam) Closure<Boolean> predicate) {        
+    if (predicate.call(p)) {
+        // send invite
+        // ...
+    }
+}
+inviteIf(p) {                                                                       
+    it.age >= 18
+}
+@ClosureParams注解最低限度接受一个参数，命名为类型线索，一个类型线索是一个类
+它负责在编译时为闭包完善类型信息，在示例中，类型线索使用的FirstParam，它指示类型检查器
+闭包将接受一个参数，它的类型是方法的第一个参数的类型，这时，方法的第一个参数是Person
+它指示类型检查器闭包的第一个参数事实上是一个Person
+第二个参数是可选的，命名为options，它的语意依赖于类型线索类，Groovy有许多不同的类型线索
+即使使用FirstParam，SecondParam或ThirdParam作为一个类型线索，并不严格意味着传入到闭包的实参
+就是方法调用时传入方法的实参，它只意味着闭包的参数的类型和方法调用时传入方法的实参的类型相同
+简言之，在一个接受闭包作为参数的方法上缺少@ClosureParams注解将不会编译失败，如果有的话，类型
+检查器有更多的信息，可以执行额外的类型推断，对框架开发者有用
+@DelegatesTo注解被类型检查器用来推断delegate的类型，它允许API设计者指示编译器delegate的类型是什么和代理策略
+静态编译，动态vs静态，使用@TypeChecked注解Groovy能提供可选的类型检查，类型检查器在编译时运行
+执行动态代码的一个静态分析，无论类型检查是否启用，程序的执行行为是完全一样的，这意味着@TypeChecked
+注解对于程序的语意保持中立，即使或许有必要在源码上添加一些信息以至于程序被认为是类型安全的
+最后程序的语意是一样的，这听起来很好，实际上还有一个问题，动态代码的类型检查在编译时完成
+只有在没有运行时指定的行为发生时才是正确的，下面的代码将通过类型检查
+class Computer {
+    int compute(String str) {
+        str.length()
+    }
+    String compute(int x) {
+        String.valueOf(x)
+    }
+}
+
+@groovy.transform.TypeChecked
+void test() {
+    def computer = new Computer()
+    computer.with {
+        assert compute(compute('foobar')) =='6'
+    }
+}
+现在在调用test()方法前，考虑加入下面这一行
+Computer.metaClass.compute = { String str -> new Date() }
+使用运行时元编程，我们实际改变了compute(String)方法的行为，现在返回的不是int而是Date
+如果执行程序，在运行时将失败，因为这行代码可以在任何地方任何线程中被加入，对于类型检查器
+来说绝对无法静态地保证没有这样的事情发生，简言之，类型检查器是脆弱的
+这只是一个示例，但是说明了对动态程序做静态分析的概念从本质上讲是错误的
+Groovy语言提供了一个可选的注解，它将实际保证被推断的方法当被调用时和在允许时被调用是一样的
+这个注解把Groovy编译器转变成一个静态编译器，所有的方法调用在编译时被解析和产生的字节码确保
+一定是这样的，这个注解是@CompileStatic，可用在任何@TypeChecked注解可用的地方，类或方法上
+没有必要同时添加这两个，因为@CompileStatic注解将执行@TypeChecked注解所做的任何事情，除此之外
+还触发静态编译，可下面的示例，使用@CompileStatic代替@TypeChecked
+class Computer {
+    int compute(String str) {
+        str.length()
+    }
+    String compute(int x) {
+        String.valueOf(x)
+    }
+}
+
+@groovy.transform.CompileStatic
+void test() {
+    def computer = new Computer()
+    computer.with {
+        assert compute(compute('foobar')) =='6'
+    }
+}
+Computer.metaClass.compute = { String str -> new Date() }
+test()
+如果我们执行程序，这次没有运行时报错，test方法对脆弱具有了免疫力，因为被调用的compute方法在编译时进行了链接
+因此即使Computer类的metaclass被改变，程序的行为仍然像期望的那样
+使用@CompileStatic注解的关键好处，类型安全，对脆弱免疫，性能改善
+性能改善依赖于执行的程序类型，如果是I/O限制的话，静态编译代码和动态代码之间的不同几乎不明显
+在高CPU集中的代码，因为生成的字节码非常接近Java生成的，性能得到极大的改进
+使用Groovy的动态调用版本，对于使用JDK7或更高的，动态代码的性能和静态编译代码的性能应该非常接近
+有时甚至更快，只有一种方式来决定你应该选择哪个版本，度量，原因取决于你的程序和使用的JVM，性能
+可能非常不同，特别地，Groovy的动态调用版本对使用的JVM版本是非常敏感的
+
+
+
+
+
+
+
+
+
