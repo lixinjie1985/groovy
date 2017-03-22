@@ -95,5 +95,56 @@ class Groovy1 {
 		mp.key = 'valuevalue'
 		println mp
 		println mp.containsKey('key1')
+		println 'groovy truth，会将其它类型自动转换为布尔类型，只要是非null非空都为真'
+		println 'groovy 支持三元操作符 exp ? val1 : val2'
+		println 'Elvis（埃尔维斯）操作符，是三元操作符的缩写形式，val1 ? val1 : val2 等同于 val1 ?: val2'
+		println '安全导航操作符，为了避免抛出空指针异常，person?.name，这样当person为null时不抛异常直接返回null'
+		def person;
+		println person?.name
+//		println person.name
+		println 'person.name访问的是getter，person.@name访问的是字段'
+		println '方法指针操作符，.&，把对一个方法的引用保存在变量里，稍后调用，其实是一个闭包，在需要闭包时传递它，相当于把方法当作参数传递'
+		def str = 'aaaa'
+		def uc = str.&toUpperCase
+		println uc()
+		println '所有重载方法共用一个方法指针，在运行时解析'
+		println '传播操作符*.，从列表中的每个元素上获取指定属性，再组成一个新列表，personList*.name结果是nameList'
+		println '分散操作符*，把列表类型的参数拆开，args = [1, 2, 3]，*args其实就变成三个参数1,2,3，可以和普通参数混合使用'
+		def l1 = [3, 4]
+		def l2 = [1, 2, *l1, 5]
+		println l2
+		println '分散映射（map）元素，*:'
+		def m1 = [b:1]
+		def m2 = [a:1, *:m1, c:1]
+		println m2
+		println '范围操作符，..，创建对象的范围（分为包含右边界和不包含右边界）'
+		def r1 = 0..9
+		println r1.size()
+		r1.each{
+			print it
+		}
+		println()
+		def r2 = 0..<9
+				println r2.size()
+				r2.each{
+			print it
+		}
+		println '下标操作符，[]，是getAt或putAt的速写记法，下标操作符，可用于实现了getAt或putAt方法的对象上'
+		println '成员关系（membership）操作符，in'
+		println 1 in [1, 2]
+		println '相等操作符，==，与Java中的不同，它是调用equals方法，如果想判断引用相等，应该使用is'
+		def l3 = [1, 2]
+		def l4 = [1, 2]
+		println l3 == l4
+		println l3.is(l4)
+		println l3.is(l3)
+		println '强制操作符，as，把类型转换成一个新的类型，会返回一个全新的对象，除非本来就是这个类型的，可以自定义转换规则，幸亏有asType方法'
+		int i1 = 10
+		def s1 = i1 as String
+		println s1 + '->' + s1.getClass()
+		println '调用操作符，()，用于隐式调用一个名为call的方法。对于任何定义了call方法的对象，直接用()进行调用，相当于调用call方法'
+		println 'line 566 of groovy.txt-----------------------------------------------'
 	}
+	
+	
 }
